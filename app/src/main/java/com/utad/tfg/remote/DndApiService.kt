@@ -3,6 +3,15 @@ package com.utad.tfg.remote
 import retrofit2.http.GET
 import retrofit2.http.Path
 
+/**
+ * Interfaz de control de la API de DnD 5e
+ *
+ * Guías de uso:
+ *
+ * [Documentación oficial](https://5e-bits.github.io/docs/introduction)
+ *
+ * [API Reference](https://dnd5e.magical20.com)
+ */
 interface DndApiService {
     @GET("api/races")
     suspend fun getRaces(): DndResourceList
