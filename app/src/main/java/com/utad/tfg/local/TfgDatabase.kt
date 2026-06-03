@@ -6,9 +6,9 @@ import androidx.room.TypeConverters
 import com.utad.tfg.local.daos.CampaignDao
 import com.utad.tfg.local.daos.CharacterDao
 import com.utad.tfg.local.daos.EnemyDao
-import com.utad.tfg.model.Campaign
-import com.utad.tfg.model.Character
-import com.utad.tfg.model.Enemy
+import com.utad.tfg.local.entities.Campaign
+import com.utad.tfg.local.entities.Character
+import com.utad.tfg.local.entities.Enemy
 
 @Database(
     entities = [Campaign::class, Character::class, Enemy::class],

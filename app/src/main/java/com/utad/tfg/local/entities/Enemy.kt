@@ -1,4 +1,4 @@
-package com.utad.tfg.model
+package com.utad.tfg.local.entities
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -6,7 +6,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
-    tableName = "characters",
+    tableName = "enemies",
     foreignKeys = [
         ForeignKey(
             entity = Campaign::class,
@@ -17,19 +17,15 @@ import androidx.room.PrimaryKey
     ],
     indices = [Index(value = ["campaignId"])]
 )
-data class Character(
+data class Enemy(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val campaignId: String? = null,
+    val campaignId: String,
     val name: String,
-    val race: String,
-    val className: String,
-    val subclass: String?,
-    val level: Int,
+    val type: String,
     val maxHp: Int,
     val currentHp: Int,
     val armorClass: Int,
     val initiative: Int = 0,
-    val imgUri: String? = null,
-    val state: CharState = CharState.noCampaign
+    val imgUri: String? = null
 )
