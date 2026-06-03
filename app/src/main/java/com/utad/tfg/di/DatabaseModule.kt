@@ -24,7 +24,8 @@ object DatabaseModule {
             context,
             TfgDatabase::class.java,
             "tfg_database"
-        ).build()
+        ).fallbackToDestructiveMigration(true)
+            .build()
     }
 
     @Provides
