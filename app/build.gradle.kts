@@ -63,6 +63,11 @@ dependencies {
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
 
+    // Networking
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.gson)
+    implementation(libs.okhttp.logging)
+
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

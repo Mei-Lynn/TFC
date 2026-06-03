@@ -5,8 +5,6 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.utad.tfg.model.CharState
-import com.utad.tfg.model.DndClass
-import com.utad.tfg.model.DndRace
 
 @Entity(
     tableName = "characters",
@@ -25,8 +23,8 @@ data class Character(
     val id: Long = 0,
     val campaignId: String? = null,
     val name: String,
-    val race: DndRace,
-    val className: DndClass,
+    val raceIndex: String,
+    val classIndex: String,
     val level: Int,
     val maxHp: Int,
     val currentHp: Int,
