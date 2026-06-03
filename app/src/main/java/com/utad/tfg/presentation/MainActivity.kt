@@ -10,6 +10,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.utad.tfg.ui.theme.TFGTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -21,22 +22,20 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             TFGTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    MainNavigation(innerPadding)
-                }
+                MainNavigation()
             }
         }
     }
 }
 
 @Composable
-fun MainNavigation(paddingValues: PaddingValues) {
+fun MainNavigation() {
     val navController = rememberNavController()
 
     NavHost(
         navController,
-        startDestination = ""
+        startDestination = "charSelect"
     ) {
-
+        composable("charSelect") { CharSelectScreen() }
     }
 }
