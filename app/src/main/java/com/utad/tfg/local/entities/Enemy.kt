@@ -11,6 +11,8 @@ import androidx.room.PrimaryKey
 data class Enemy(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val index: String,
+    val campaignId: String,
     val name: String,
     val type: String,
     val size: String,
@@ -27,6 +29,7 @@ data class Enemy(
     val charisma: Int,
     val challengeRating: Float,
     val xp: Int,
+    val actions: List<com.utad.tfg.remote.MonsterAction>? = null,
     val initiative: Int = 0,
     val imgUri: String? = null
 )

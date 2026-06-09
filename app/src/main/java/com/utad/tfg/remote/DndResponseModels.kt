@@ -115,6 +115,31 @@ data class DndMonsterResponse(
     val image: String? = null
 )
 
+fun DndMonsterResponse.toEnemy(campaignId: String = "Global"): com.utad.tfg.local.entities.Enemy {
+    return com.utad.tfg.local.entities.Enemy(
+        index = this.index,
+        name = this.name,
+        type = this.type,
+        size = this.size,
+        alignment = this.alignment,
+        maxHp = this.hitPoints,
+        currentHp = this.hitPoints,
+        armorClass = this.armorClass.firstOrNull()?.value ?: 10,
+        speed = this.speed.walk ?: "0 ft.",
+        strength = this.strength,
+        dexterity = this.dexterity,
+        constitution = this.constitution,
+        intelligence = this.intelligence,
+        wisdom = this.wisdom,
+        charisma = this.charisma,
+        challengeRating = this.challengeRating,
+        xp = this.xp,
+        actions = this.actions,
+        campaignId = campaignId,
+        imgUri = this.image?.let { "https://www.dnd5eapi.co$it" }
+    )
+}
+
 data class MonsterSpeed(
     val walk: String? = null,
     val fly: String? = null,

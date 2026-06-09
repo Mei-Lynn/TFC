@@ -8,6 +8,7 @@ import com.utad.tfg.remote.DndApiService
 import com.utad.tfg.remote.DndMonsterResponse
 import com.utad.tfg.remote.DndResource
 import com.utad.tfg.remote.NetworkUtils
+import com.utad.tfg.remote.toEnemy
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -57,25 +58,7 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val details = dndApiService.getMonsterDetails(monsterIndex)
-                val enemy = Enemy(
-                    name = details.name,
-                    type = details.type,
-                    size = details.size,
-                    alignment = details.alignment,
-                    maxHp = details.hitPoints,
-                    currentHp = details.hitPoints,
-                    armorClass = details.armorClass.firstOrNull()?.value ?: 10,
-                    speed = details.speed.walk ?: "0 ft.",
-                    strength = details.strength,
-                    dexterity = details.dexterity,
-                    constitution = details.constitution,
-                    intelligence = details.intelligence,
-                    wisdom = details.wisdom,
-                    charisma = details.charisma,
-                    challengeRating = details.challengeRating,
-                    xp = details.xp,
-                    imgUri = details.image?.let { "https://www.dnd5eapi.co$it" }
-                )
+                val enemy = details.toEnemy()
                 enemyDao.insertEnemy(enemy)
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -129,11 +112,36 @@ class MainViewModel @Inject constructor(
 
     fun fetchMonsterDetails(index: String) {
         viewModelScope.launch {
-            try {
-                _monsterDetails.value = dndApiService.getMonsterDetails(index)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                _monsterDetails.value = null
+            // First check local
+            val local = enemyDao.getEnemyByIndex(index)
+            if (local != null) {
+                _monsterDetails.value = DndMonsterResponse(
+                    index = local.index,
+                    name = local.name,
+                    size = local.size,
+                    type = local.type,
+                    alignment = local.alignment,
+                    hitPoints = local.maxHp,
+                    armorClass = listOf(com.utad.tfg.remote.ArmorClass("base", local.armorClass)),
+                    strength = local.strength,
+                    dexterity = local.dexterity,
+                    constitution = local.constitution,
+                    intelligence = local.intelligence,
+                    wisdom = local.wisdom,
+                    charisma = local.charisma,
+                    speed = com.utad.tfg.remote.MonsterSpeed(walk = local.speed),
+                    challengeRating = local.challengeRating,
+                    xp = local.xp,
+                    actions = local.actions,
+                    image = local.imgUri?.replace("https://www.dnd5eapi.co", "")
+                )
+            } else if (isNetworkAvailable.value) {
+                try {
+                    _monsterDetails.value = dndApiService.getMonsterDetails(index)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    _monsterDetails.value = null
+                }
             }
         }
     }

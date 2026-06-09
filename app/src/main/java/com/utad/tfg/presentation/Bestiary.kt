@@ -108,7 +108,13 @@ fun BestiaryScreen() {
                 contentPadding = PaddingValues(8.dp)
             ) {
                 items(filteredLocal) { enemy ->
-                    OfflineMonsterCard(enemy)
+                    OfflineMonsterCard(
+                        enemy = enemy,
+                        onInfoClick = {
+                            selectedIndex = it
+                            showDialog = true
+                        }
+                    )
                 }
             }
         }
@@ -116,11 +122,12 @@ fun BestiaryScreen() {
 }
 
 @Composable
-fun OfflineMonsterCard(enemy: Enemy) {
+fun OfflineMonsterCard(enemy: Enemy, onInfoClick: (String) -> Unit) {
     Card(
         modifier = Modifier
             .padding(8.dp)
             .fillMaxWidth()
+            .clickable { onInfoClick(enemy.index) }
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -175,12 +182,9 @@ fun OnlineMonsterCard(
 fun MonsterInfoDialog(onDismiss: () -> Unit, index: String) {
     val vm = hiltViewModel<MainViewModel>()
     val monster by vm.monsterDetails.collectAsStateWithLifecycle()
-    val isOnline by vm.isNetworkAvailable.collectAsStateWithLifecycle()
 
     LaunchedEffect(index) {
-        if (isOnline) {
-            vm.fetchMonsterDetails(index)
-        }
+        vm.fetchMonsterDetails(index)
     }
 
     Dialog(onDismiss) {

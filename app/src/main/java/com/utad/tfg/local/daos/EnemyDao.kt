@@ -16,6 +16,9 @@ interface EnemyDao {
     @Query("SELECT * FROM enemies")
     fun getDownloadedEnemies(): Flow<List<Enemy>>
 
+    @Query("SELECT * FROM enemies WHERE `index` = :index LIMIT 1")
+    suspend fun getEnemyByIndex(index: String): Enemy?
+
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertEnemy(enemy: Enemy)
