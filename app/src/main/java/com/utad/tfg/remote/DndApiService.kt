@@ -29,5 +29,11 @@ interface DndApiService {
     suspend fun getMonsters(): DndResourceList
     
     @GET("api/monsters/{index}")
-    suspend fun getMonsterDetails(@Path("index") index: String): DndResource
+    suspend fun getMonsterDetails(@Path("index") index: String): DndMonsterResponse
+
+    @GET("api/spells")
+    suspend fun getSpells(): DndResourceList
+
+    @GET("api/spells/{index}")
+    suspend fun getSpellDetails(@Path("index") index: String): DndSpellResponse
 }

@@ -78,7 +78,7 @@ fun MainNavigation() {
         ) {
             composable("charSelect") { CharSelectScreen() }
             composable("campaigns") { Campaigns() }
-            composable("enemies") { BestiaryScreen() }
+            composable("bestiary") { BestiaryScreen() }
         }
     }
 }

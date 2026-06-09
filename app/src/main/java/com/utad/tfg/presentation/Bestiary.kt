@@ -1,8 +1,305 @@
 package com.utad.tfg.presentation
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.DownloadDone
+import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items as lazyItems
+import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.utad.tfg.local.entities.Enemy
+import com.utad.tfg.remote.DndMonsterResponse
 
 @Composable
 fun BestiaryScreen() {
+    val vm = hiltViewModel<MainViewModel>()
+    val isOnline by vm.isNetworkAvailable.collectAsState()
+    val monsters by vm.monsters.collectAsState()
+    val localEnemies by vm.localEnemies.collectAsState()
+    var searchString by remember { mutableStateOf("") }
+    
+    var showDialog by remember { mutableStateOf(false) }
+    var selectedIndex by remember { mutableStateOf("") }
 
+    if (showDialog) {
+        MonsterInfoDialog(
+            onDismiss = { showDialog = false },
+            index = selectedIndex
+        )
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        CustomSearchBar(
+            placeholder = "Search monsters...",
+            onSearchTextChanged = { searchString = it }
+        )
+
+        if (isOnline) {
+            val filteredMonsters = monsters.filter {
+                it.name.contains(searchString, ignoreCase = true)
+            }
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(8.dp)
+            ) {
+                items(filteredMonsters) { monster ->
+                    val isDownloaded = localEnemies.any { it.name == monster.name }
+                    OnlineMonsterCard(
+                        name = monster.name,
+                        isDownloaded = isDownloaded,
+                        onDownloadClick = { vm.downloadMonster(monster.index) },
+                        onInfoClick = {
+                            selectedIndex = it
+                            showDialog = true
+                        },
+                        index = monster.index,
+                    )
+                }
+            }
+
+        } else {
+            val filteredLocal = localEnemies.filter {
+                it.name.contains(searchString, ignoreCase = true)
+            }
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(8.dp)
+            ) {
+                items(filteredLocal) { enemy ->
+                    OfflineMonsterCard(enemy)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun OfflineMonsterCard(enemy: Enemy) {
+    Card(
+        modifier = Modifier
+            .padding(8.dp)
+            .fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = enemy.name, style = MaterialTheme.typography.titleMedium)
+            Text(text = enemy.type, style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+@Composable
+fun OnlineMonsterCard(
+    name: String,
+    index: String,
+    isDownloaded: Boolean,
+    onDownloadClick: () -> Unit,
+    onInfoClick: (index: String) -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .padding(8.dp)
+            .fillMaxWidth()
+            .clickable {onInfoClick(index)}
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = name,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(
+                onClick = onDownloadClick,
+                enabled = !isDownloaded
+            ) {
+                Icon(
+                    imageVector = if (isDownloaded) Icons.Default.DownloadDone else Icons.Default.Download,
+                    contentDescription = if (isDownloaded) "Downloaded" else "Download"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MonsterInfoDialog(onDismiss: () -> Unit, index: String) {
+    val vm = hiltViewModel<MainViewModel>()
+    val monster by vm.monsterDetails.collectAsStateWithLifecycle()
+    val isOnline by vm.isNetworkAvailable.collectAsStateWithLifecycle()
+
+    LaunchedEffect(index) {
+        if (isOnline) {
+            vm.fetchMonsterDetails(index)
+        }
+    }
+
+    Dialog(onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            if (monster == null) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator()
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Loading monster info...")
+                }
+            } else {
+                val m = monster!!
+                Column(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth()
+                ) {
+                    Text(
+                        text = m.name,
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "${m.size} ${m.type}, ${m.alignment}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                    )
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        StatItem("AC", "${m.armorClass.firstOrNull()?.value ?: 10}")
+                        StatItem("HP", "${m.hitPoints}")
+                        StatItem("CR", "${m.challengeRating}")
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        AbilityScore("STR", m.strength)
+                        AbilityScore("DEX", m.dexterity)
+                        AbilityScore("CON", m.constitution)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        AbilityScore("INT", m.intelligence)
+                        AbilityScore("WIS", m.wisdom)
+                        AbilityScore("CHA", m.charisma)
+                    }
+
+                    if (!m.actions.isNullOrEmpty()) {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                        Text(text = "Actions", style = MaterialTheme.typography.titleMedium)
+                        m.actions.take(3).forEach { action ->
+                            Text(
+                                text = action.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = action.desc,
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 3,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun StatItem(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+        Text(text = value, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@Composable
+fun AbilityScore(label: String, score: Int) {
+    val modifier = (score - 10) / 2
+    val modText = if (modifier >= 0) "+$modifier" else "$modifier"
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+        Text(text = "$score ($modText)", style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+
+@Composable
+fun CustomSearchBar(
+    placeholder: String,
+    onSearchTextChanged: (String) -> Unit
+) {
+    var text by remember { mutableStateOf("") }
+
+    OutlinedTextField(
+        value = text,
+        onValueChange = {
+            text = it
+            onSearchTextChanged(it)
+        },
+        placeholder = { Text(placeholder) },
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(15.dp),
+        singleLine = true
+    )
 }

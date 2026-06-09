@@ -66,3 +66,68 @@ data class EquipmentEntry(
     val equipment: DndResource,
     val quantity: Int
 )
+
+data class DndSpellResponse(
+    val index: String,
+    val name: String,
+    val desc: List<String>,
+    @SerializedName("higher_level") val higherLevel: List<String>? = null,
+    val range: String,
+    val components: List<String>,
+    val material: String? = null,
+    val ritual: Boolean,
+    val duration: String,
+    val concentration: Boolean,
+    @SerializedName("casting_time") val castingTime: String,
+    val level: Int,
+    @SerializedName("attack_type") val attackType: String? = null,
+    val damage: SpellDamage? = null,
+    val school: DndResource,
+    val classes: List<DndResource>,
+    val subclasses: List<DndResource>,
+    val url: String
+)
+
+data class SpellDamage(
+    @SerializedName("damage_type") val damageType: DndResource? = null,
+    @SerializedName("damage_at_slot_level") val damageAtSlotLevel: Map<String, String>? = null,
+    @SerializedName("damage_at_character_level") val damageAtCharacterLevel: Map<String, String>? = null
+)
+
+data class DndMonsterResponse(
+    val index: String,
+    val name: String,
+    val size: String,
+    val type: String,
+    val alignment: String,
+    @SerializedName("hit_points") val hitPoints: Int,
+    @SerializedName("armor_class") val armorClass: List<ArmorClass>,
+    val strength: Int,
+    val dexterity: Int,
+    val constitution: Int,
+    val intelligence: Int,
+    val wisdom: Int,
+    val charisma: Int,
+    val speed: MonsterSpeed,
+    @SerializedName("challenge_rating") val challengeRating: Float,
+    val xp: Int,
+    val actions: List<MonsterAction>? = null,
+    val image: String? = null
+)
+
+data class MonsterSpeed(
+    val walk: String? = null,
+    val fly: String? = null,
+    val swim: String? = null,
+    val climb: String? = null
+)
+
+data class MonsterAction(
+    val name: String,
+    val desc: String
+)
+
+data class ArmorClass(
+    val type: String,
+    val value: Int
+)

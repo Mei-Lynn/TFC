@@ -7,25 +7,26 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "enemies",
-    foreignKeys = [
-        ForeignKey(
-            entity = Campaign::class,
-            parentColumns = ["id"],
-            childColumns = ["campaignId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ],
-    indices = [Index(value = ["campaignId"])]
 )
 data class Enemy(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val campaignId: String,
     val name: String,
     val type: String,
+    val size: String,
+    val alignment: String,
     val maxHp: Int,
     val currentHp: Int,
     val armorClass: Int,
+    val speed: String,
+    val strength: Int,
+    val dexterity: Int,
+    val constitution: Int,
+    val intelligence: Int,
+    val wisdom: Int,
+    val charisma: Int,
+    val challengeRating: Float,
+    val xp: Int,
     val initiative: Int = 0,
     val imgUri: String? = null
 )
