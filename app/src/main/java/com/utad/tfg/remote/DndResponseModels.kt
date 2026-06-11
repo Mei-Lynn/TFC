@@ -1,13 +1,14 @@
 package com.utad.tfg.remote
 
 import com.google.gson.annotations.SerializedName
+import com.utad.tfg.local.entities.Enemy
 
-data class DndResourceList(
+data class JsonResourceList(
     val count: Int,
-    val results: List<DndResource>
+    val results: List<JsonResource>
 )
 
-data class DndResource(
+data class JsonResource(
     val index: String,
     val name: String,
     val url: String
@@ -21,14 +22,26 @@ data class DndRaceResponse(
     @SerializedName("alignment") val alignment: String,
     @SerializedName("age") val age: String,
     @SerializedName("size") val size: String,
-    @SerializedName("starting_proficiencies") val startingProficiencies: List<DndResource>,
-    @SerializedName("languages") val languages: List<DndResource>,
-    @SerializedName("traits") val traits: List<DndResource>,
-    @SerializedName("subraces") val subraces: List<DndResource>
+    @SerializedName("starting_proficiencies") val startingProficiencies: List<JsonResource>,
+    @SerializedName("languages") val languages: List<JsonResource>,
+    @SerializedName("traits") val traits: List<JsonResource>,
+    @SerializedName("subraces") val subraces: List<JsonResource>,
+    @SerializedName("starting_proficiency_options") val startingProficiencyOptions: ProficiencyChoice? = null
+)
+
+data class DndSubraceResponse(
+    val index: String,
+    val name: String,
+    val race: JsonResource,
+    val desc: String,
+    @SerializedName("ability_bonuses") val abilityBonuses: List<AbilityBonus>,
+    @SerializedName("starting_proficiencies") val startingProficiencies: List<JsonResource>,
+    @SerializedName("languages") val languages: List<JsonResource>,
+    @SerializedName("racial_traits") val racialTraits: List<JsonResource>
 )
 
 data class AbilityBonus(
-    @SerializedName("ability_score") val abilityScore: DndResource,
+    @SerializedName("ability_score") val abilityScore: JsonResource,
     val bonus: Int
 )
 
@@ -37,12 +50,36 @@ data class DndClassResponse(
     val name: String,
     @SerializedName("hit_die") val hitDie: Int,
     @SerializedName("proficiency_choices") val proficiencyChoices: List<ProficiencyChoice>,
-    @SerializedName("proficiencies") val proficiencies: List<DndResource>,
-    @SerializedName("saving_throws") val savingThrows: List<DndResource>,
+    @SerializedName("proficiencies") val proficiencies: List<JsonResource>,
+    @SerializedName("saving_throws") val savingThrows: List<JsonResource>,
     @SerializedName("starting_equipment") val startingEquipment: List<EquipmentEntry>,
     @SerializedName("class_levels") val classLevels: String,
-    @SerializedName("subclasses") val subclasses: List<DndResource>,
+    @SerializedName("subclasses") val subclasses: List<JsonResource>,
     val spells: String? = null
+)
+
+data class DndSubclassResponse(
+    val index: String,
+    val name: String,
+    @SerializedName("class") val dndClass: JsonResource,
+    @SerializedName("subclass_flavor") val subclassFlavor: String,
+    val desc: List<String>,
+    val spells: List<JsonResource>? = null
+)
+
+data class DndBackgroundResponse(
+    val index: String,
+    val name: String,
+    @SerializedName("starting_proficiencies") val startingProficiencies: List<JsonResource>,
+    @SerializedName("language_options") val languageOptions: ProficiencyChoice? = null,
+    @SerializedName("starting_equipment") val startingEquipment: List<EquipmentEntry>,
+    @SerializedName("starting_equipment_options") val startingEquipmentOptions: List<ProficiencyChoice>? = null,
+    val feature: BackgroundFeature
+)
+
+data class BackgroundFeature(
+    val name: String,
+    val desc: List<String>
 )
 
 data class ProficiencyChoice(
@@ -59,11 +96,11 @@ data class ProficiencyFrom(
 
 data class ProficiencyOption(
     @SerializedName("option_type") val optionType: String,
-    val item: DndResource
+    val item: JsonResource
 )
 
 data class EquipmentEntry(
-    val equipment: DndResource,
+    val equipment: JsonResource,
     val quantity: Int
 )
 
@@ -82,14 +119,14 @@ data class DndSpellResponse(
     val level: Int,
     @SerializedName("attack_type") val attackType: String? = null,
     val damage: SpellDamage? = null,
-    val school: DndResource,
-    val classes: List<DndResource>,
-    val subclasses: List<DndResource>,
+    val school: JsonResource,
+    val classes: List<JsonResource>,
+    val subclasses: List<JsonResource>,
     val url: String
 )
 
 data class SpellDamage(
-    @SerializedName("damage_type") val damageType: DndResource? = null,
+    @SerializedName("damage_type") val damageType: JsonResource? = null,
     @SerializedName("damage_at_slot_level") val damageAtSlotLevel: Map<String, String>? = null,
     @SerializedName("damage_at_character_level") val damageAtCharacterLevel: Map<String, String>? = null
 )
@@ -115,8 +152,8 @@ data class DndMonsterResponse(
     val image: String? = null
 )
 
-fun DndMonsterResponse.toEnemy(campaignId: String = "Global"): com.utad.tfg.local.entities.Enemy {
-    return com.utad.tfg.local.entities.Enemy(
+fun DndMonsterResponse.toEnemy(): Enemy {
+    return Enemy(
         index = this.index,
         name = this.name,
         type = this.type,
@@ -135,7 +172,6 @@ fun DndMonsterResponse.toEnemy(campaignId: String = "Global"): com.utad.tfg.loca
         challengeRating = this.challengeRating,
         xp = this.xp,
         actions = this.actions,
-        campaignId = campaignId,
         imgUri = this.image?.let { "https://www.dnd5eapi.co$it" }
     )
 }

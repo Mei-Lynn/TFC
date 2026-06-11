@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.utad.tfg.model.Ability
 import com.utad.tfg.local.entities.Enemy
 import com.utad.tfg.remote.DndMonsterResponse
 
@@ -279,7 +280,7 @@ fun StatItem(label: String, value: String) {
 
 @Composable
 fun AbilityScore(label: String, score: Int) {
-    val modifier = (score - 10) / 2
+    val modifier = Ability.calculateModifier(score)
     val modText = if (modifier >= 0) "+$modifier" else "$modifier"
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(text = label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)

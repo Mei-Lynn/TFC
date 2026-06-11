@@ -12,7 +12,7 @@ import com.utad.tfg.local.entities.Enemy
 
 @Database(
     entities = [Campaign::class, Character::class, Enemy::class],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

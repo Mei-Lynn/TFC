@@ -13,26 +13,20 @@ import retrofit2.http.Path
  * [API Reference](https://dnd5e.magical20.com)
  */
 interface DndApiService {
-    @GET("api/races")
-    suspend fun getRaces(): DndResourceList
+    @GET("api/backgrounds")
+    suspend fun getBackgrounds(): JsonResourceList
 
-    @GET("api/races/{index}")
-    suspend fun getRaceDetails(@Path("index") index: String): DndRaceResponse
-
-    @GET("api/classes")
-    suspend fun getClasses(): DndResourceList
-
-    @GET("api/classes/{index}")
-    suspend fun getClassDetails(@Path("index") index: String): DndClassResponse
+    @GET("api/backgrounds/{index}")
+    suspend fun getBackgroundDetails(@Path("index") index: String): DndBackgroundResponse
 
     @GET("api/monsters")
-    suspend fun getMonsters(): DndResourceList
+    suspend fun getMonsters(): JsonResourceList
     
     @GET("api/monsters/{index}")
     suspend fun getMonsterDetails(@Path("index") index: String): DndMonsterResponse
 
     @GET("api/spells")
-    suspend fun getSpells(): DndResourceList
+    suspend fun getSpells(): JsonResourceList
 
     @GET("api/spells/{index}")
     suspend fun getSpellDetails(@Path("index") index: String): DndSpellResponse

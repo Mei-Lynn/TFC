@@ -12,7 +12,6 @@ data class Enemy(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val index: String,
-    val campaignId: String,
     val name: String,
     val type: String,
     val size: String,

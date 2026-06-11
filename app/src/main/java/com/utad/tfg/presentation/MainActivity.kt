@@ -76,7 +76,8 @@ fun MainNavigation() {
             startDestination = "charSelect",
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable("charSelect") { CharSelectScreen() }
+            composable("charSelect") { CharSelectScreen(onAddCharacter = { navController.navigate("charCreate") }) }
+            composable("charCreate") { CharCreateScreen(onCharacterCreated = { navController.navigate("charSelect") }) }
             composable("campaigns") { Campaigns() }
             composable("bestiary") { BestiaryScreen() }
         }
