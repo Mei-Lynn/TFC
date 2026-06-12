@@ -19,6 +19,8 @@ interface EnemyDao {
     @Query("SELECT * FROM enemies WHERE `index` = :index LIMIT 1")
     suspend fun getEnemyByIndex(index: String): Enemy?
 
+    @Query("DELETE FROM enemies WHERE `index` = :index")
+    suspend fun deleteEnemyByIndex(index: String)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertEnemy(enemy: Enemy)

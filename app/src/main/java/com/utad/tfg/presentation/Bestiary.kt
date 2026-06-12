@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.material3.Divider
 import androidx.compose.material3.HorizontalDivider
@@ -54,13 +55,17 @@ import com.utad.tfg.remote.DndMonsterResponse
 @Composable
 fun BestiaryScreen() {
     val vm = hiltViewModel<MainViewModel>()
-    val isOnline by vm.isNetworkAvailable.collectAsState()
-    val monsters by vm.monsters.collectAsState()
-    val localEnemies by vm.localEnemies.collectAsState()
+    val isOnline by vm.isNetworkAvailable.collectAsStateWithLifecycle()
+    val monsters by vm.monsters.collectAsStateWithLifecycle()
+    val localEnemies by vm.localEnemies.collectAsStateWithLifecycle()
     var searchString by remember { mutableStateOf("") }
     
     var showDialog by remember { mutableStateOf(false) }
     var selectedIndex by remember { mutableStateOf("") }
+
+    LaunchedEffect(isOnline) {
+        if (isOnline) vm.fetchMonsters()
+    }
 
     if (showDialog) {
         MonsterInfoDialog(
@@ -85,11 +90,12 @@ fun BestiaryScreen() {
                 contentPadding = PaddingValues(8.dp)
             ) {
                 items(filteredMonsters) { monster ->
-                    val isDownloaded = localEnemies.any { it.name == monster.name }
+                    val isDownloaded = localEnemies.any { it.index == monster.index }
                     OnlineMonsterCard(
                         name = monster.name,
                         isDownloaded = isDownloaded,
                         onDownloadClick = { vm.downloadMonster(monster.index) },
+                        onDeleteClick = {vm.deleteSavedMonster(monster.index)},
                         onInfoClick = {
                             selectedIndex = it
                             showDialog = true
@@ -146,6 +152,7 @@ fun OnlineMonsterCard(
     index: String,
     isDownloaded: Boolean,
     onDownloadClick: () -> Unit,
+    onDeleteClick: () -> Unit,
     onInfoClick: (index: String) -> Unit
 ) {
     Card(
@@ -167,12 +174,11 @@ fun OnlineMonsterCard(
                 modifier = Modifier.weight(1f)
             )
             IconButton(
-                onClick = onDownloadClick,
-                enabled = !isDownloaded
+                onClick = if (isDownloaded) onDeleteClick else onDownloadClick,
             ) {
                 Icon(
-                    imageVector = if (isDownloaded) Icons.Default.DownloadDone else Icons.Default.Download,
-                    contentDescription = if (isDownloaded) "Downloaded" else "Download"
+                    imageVector = if (isDownloaded) Icons.Default.Delete else Icons.Default.Download,
+                    contentDescription = "Download/Delete"
                 )
             }
         }

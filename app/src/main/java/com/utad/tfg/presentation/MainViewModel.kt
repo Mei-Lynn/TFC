@@ -74,10 +74,10 @@ class MainViewModel @Inject constructor(
 
 
     //======================= Database =======================
-    fun downloadMonster(monsterIndex: String) {
+    fun downloadMonster(index: String) {
         viewModelScope.launch {
             try {
-                val details = dndApiService.getMonsterDetails(monsterIndex)
+                val details = dndApiService.getMonsterDetails(index)
                 val enemy = details.toEnemy()
                 enemyDao.insertEnemy(enemy)
             } catch (e: Exception) {
@@ -86,9 +86,9 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun deleteLocalEnemy(enemy: Enemy) {
+    fun deleteSavedMonster(index: String) {
         viewModelScope.launch {
-            enemyDao.deleteEnemy(enemy)
+            enemyDao.deleteEnemyByIndex(index)
         }
     }
 
