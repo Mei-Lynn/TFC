@@ -6,6 +6,7 @@ import com.utad.tfg.local.TfgDatabase
 import com.utad.tfg.local.daos.CampaignDao
 import com.utad.tfg.local.daos.CharacterDao
 import com.utad.tfg.local.daos.EnemyDao
+import com.utad.tfg.local.daos.SpellDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -36,4 +37,7 @@ object DatabaseModule {
 
     @Provides
     fun provideEnemyDao(db: TfgDatabase): EnemyDao = db.enemyDao()
+
+    @Provides
+    fun provideSpellDao(db: TfgDatabase): SpellDao = db.spellDao()
 }

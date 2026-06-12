@@ -15,7 +15,6 @@ class Bard(override var level: Int = 1) : Class {
     override val hitDie: Int = 8
 
     override val cantrips: List<Int> = listOf(0, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4)
-    override val spells: List<List<Int>> = List(21) { emptyList() }
     override val spellSlots: List<List<Int>> = listOf(
         emptyList(),
         listOf(2), // 1
@@ -39,6 +38,16 @@ class Bard(override var level: Int = 1) : Class {
         listOf(4, 3, 3, 3, 3, 2, 1, 1, 1), // 19
         listOf(4, 3, 3, 3, 3, 2, 2, 1, 1)  // 20
     ).let { list -> List(21) { if (it < list.size) list[it] else list.last() } }
+
+    override val spells: List<List<Int>> = listOf(
+        0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 15, 16, 18, 19, 19, 20, 22, 22, 22
+    ).mapIndexed { level, total ->
+        if (level == 0) emptyList()
+        else {
+            val maxSpellLevel = spellSlots[level].size
+            List(maxSpellLevel + 1) { if (it == 0) 0 else total }
+        }
+    }
 
     override val uniqueResources: List<ClassResource> = listOf(
         ClassResource.DicePool(

@@ -17,6 +17,9 @@ interface CharacterDao {
     @Query("SELECT * FROM characters WHERE campaignId IS NULL")
     fun getUnassignedCharacters(): Flow<List<Character>>
 
+    @Query("SELECT * FROM characters")
+    fun getAllCharacters(): Flow<List<Character>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCharacter(character: Character)
 

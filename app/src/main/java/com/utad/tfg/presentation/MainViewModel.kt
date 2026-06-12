@@ -1,19 +1,26 @@
 package com.utad.tfg.presentation
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.utad.tfg.local.daos.CharacterDao
 import com.utad.tfg.local.daos.EnemyDao
 import com.utad.tfg.local.entities.Enemy
+import com.utad.tfg.local.entities.Character
+import com.utad.tfg.local.entities.SpellEntity
 import com.utad.tfg.model.Ability
 import com.utad.tfg.model.DndRace
 import com.utad.tfg.model.RaceRegistry
 import com.utad.tfg.model.classes.ClassRegistry
 import com.utad.tfg.model.classes.Subclass
+import com.utad.tfg.remote.ArmorClass
 import com.utad.tfg.model.classes.Class as DndClass
 import com.utad.tfg.remote.DndApiService
 import com.utad.tfg.remote.DndMonsterResponse
 import com.utad.tfg.remote.JsonResource
+import com.utad.tfg.remote.MonsterSpeed
 import com.utad.tfg.remote.NetworkUtils
+import com.utad.tfg.remote.SpellRepository
 import com.utad.tfg.remote.toEnemy
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +29,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -29,17 +37,15 @@ class MainViewModel @Inject constructor(
     private val dndApiService: DndApiService,
     private val networkUtils: NetworkUtils,
     private val enemyDao: EnemyDao,
-    private val characterDao: com.utad.tfg.local.daos.CharacterDao
+    private val characterDao: CharacterDao,
+    private val spellRepository: SpellRepository
 ) : ViewModel() {
-
+    val languageTag: String = Locale.getDefault().toLanguageTag()
     private val _races = MutableStateFlow<List<DndRace>>(emptyList())
     val races = _races.asStateFlow()
 
     private val _classes = MutableStateFlow<List<DndClass>>(emptyList())
     val classes = _classes.asStateFlow()
-
-    private val _backgrounds = MutableStateFlow<List<JsonResource>>(emptyList())
-    val backgrounds = _backgrounds.asStateFlow()
 
     private val _subraces = MutableStateFlow<List<DndRace>>(emptyList())
     val subraces = _subraces.asStateFlow()
@@ -53,8 +59,11 @@ class MainViewModel @Inject constructor(
     private val _monsters = MutableStateFlow<List<JsonResource>>(emptyList())
     val monsters = _monsters.asStateFlow()
 
-    // Local enemies for the "Downloads" or "Local Bestiary" view
+    // Bestiario descargado localmente
     val localEnemies: StateFlow<List<Enemy>> = enemyDao.getDownloadedEnemies()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val localCharacters: StateFlow<List<Character>> = characterDao.getAllCharacters()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     /** Indica si hay conexión de red disponible. */
@@ -66,10 +75,32 @@ class MainViewModel @Inject constructor(
         )
 
     init {
+        Log.d("VM", languageTag)
         _races.value = RaceRegistry.races
         _classes.value = ClassRegistry.classes
-        fetchBackgrounds()
         fetchMonsters()
+        viewModelScope.launch {
+            spellRepository.syncSpellsIfNeeded()
+        }
+    }
+
+    private val _filteredSpells = MutableStateFlow<List<SpellEntity>>(emptyList())
+    val filteredSpells = _filteredSpells.asStateFlow()
+
+    fun filterSpells(levels: IntRange, className: String) {
+        viewModelScope.launch {
+            spellRepository.getFilteredSpells(levels.toList(), className).collect {
+                _filteredSpells.value = it
+            }
+        }
+    }
+
+    fun filterSpells(level: Int, className: String) {
+        viewModelScope.launch {
+            spellRepository.getFilteredSpells(listOf(level), className).collect {
+                _filteredSpells.value = it
+            }
+        }
     }
 
 
@@ -77,7 +108,7 @@ class MainViewModel @Inject constructor(
     fun downloadMonster(index: String) {
         viewModelScope.launch {
             try {
-                val details = dndApiService.getMonsterDetails(index)
+                val details = dndApiService.getMonsterDetails(index, lang = languageTag)
                 val enemy = details.toEnemy()
                 enemyDao.insertEnemy(enemy)
             } catch (e: Exception) {
@@ -96,20 +127,18 @@ class MainViewModel @Inject constructor(
         name: String,
         race: DndRace,
         subrace: DndRace?,
-        background: JsonResource?,
         dndClass: DndClass,
         subclass: Subclass?,
         abilityScores: Map<Ability, Int>
     ) {
         viewModelScope.launch {
             val dex = abilityScores[Ability.Dexterity] ?: 10
-            val newChar = com.utad.tfg.local.entities.Character(
+            val newChar = Character(
                 name = name,
                 raceIndex = race.raceName.lowercase(), // Or use a proper mapping
                 subraceIndex = subrace?.subraceName?.lowercase(),
                 classIndex = dndClass.classIndex,
                 subclassIndex = subclass?.subclassName?.lowercase()?.replace(" ", "-"),
-                backgroundIndex = background?.index,
                 level = 1,
                 maxHp = dndClass.hitDie + Ability.calculateModifier(abilityScores[Ability.Constitution] ?: 10),
                 currentHp = dndClass.hitDie + Ability.calculateModifier(abilityScores[Ability.Constitution] ?: 10),
@@ -126,30 +155,20 @@ class MainViewModel @Inject constructor(
     }
 
     //========================= Local Data ==========================
-    fun fetchSubraces(raceName: String) {
+    fun getSubraces(raceName: String) {
         _subraces.value = RaceRegistry.getSubraces(raceName)
     }
 
-    fun fetchSubclasses(classIndex: String) {
+    fun getSubclasses(classIndex: String) {
         _subclasses.value = ClassRegistry.getSubclasses(classIndex)
     }
 
     //========================= API ==========================
-    fun fetchBackgrounds() {
-        viewModelScope.launch {
-            try {
-                val response = dndApiService.getBackgrounds()
-                _backgrounds.value = response.results
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
 
     fun fetchSpells(classIndex: String) {
         viewModelScope.launch {
             try {
-                val response = dndApiService.getSpells()
+                val response = dndApiService.getSpells(lang = languageTag)
                 _spells.value = response.results
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -160,7 +179,7 @@ class MainViewModel @Inject constructor(
     fun fetchMonsters() {
         viewModelScope.launch {
             try {
-                val response = dndApiService.getMonsters()
+                val response = dndApiService.getMonsters(lang = languageTag)
                 _monsters.value = response.results
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -182,14 +201,14 @@ class MainViewModel @Inject constructor(
                     type = local.type,
                     alignment = local.alignment,
                     hitPoints = local.maxHp,
-                    armorClass = listOf(com.utad.tfg.remote.ArmorClass("base", local.armorClass)),
+                    armorClass = listOf(ArmorClass("base", local.armorClass)),
                     strength = local.strength,
                     dexterity = local.dexterity,
                     constitution = local.constitution,
                     intelligence = local.intelligence,
                     wisdom = local.wisdom,
                     charisma = local.charisma,
-                    speed = com.utad.tfg.remote.MonsterSpeed(walk = local.speed),
+                    speed = MonsterSpeed(walk = local.speed),
                     challengeRating = local.challengeRating,
                     xp = local.xp,
                     actions = local.actions,
@@ -197,11 +216,22 @@ class MainViewModel @Inject constructor(
                 )
             } else if (isNetworkAvailable.value) {
                 try {
-                    _monsterDetails.value = dndApiService.getMonsterDetails(index)
+                    _monsterDetails.value = dndApiService.getMonsterDetails(index, lang = languageTag)
                 } catch (e: Exception) {
                     e.printStackTrace()
                     _monsterDetails.value = null
                 }
+            }
+        }
+    }
+
+    fun fetchClassSpells(classIndex: String) {
+        viewModelScope.launch {
+            try {
+                val response = dndApiService.getClassSpells(classIndex, lang = languageTag)
+                _spells.value = response.results
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }

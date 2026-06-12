@@ -67,21 +67,6 @@ data class DndSubclassResponse(
     val spells: List<JsonResource>? = null
 )
 
-data class DndBackgroundResponse(
-    val index: String,
-    val name: String,
-    @SerializedName("starting_proficiencies") val startingProficiencies: List<JsonResource>,
-    @SerializedName("language_options") val languageOptions: ProficiencyChoice? = null,
-    @SerializedName("starting_equipment") val startingEquipment: List<EquipmentEntry>,
-    @SerializedName("starting_equipment_options") val startingEquipmentOptions: List<ProficiencyChoice>? = null,
-    val feature: BackgroundFeature
-)
-
-data class BackgroundFeature(
-    val name: String,
-    val desc: List<String>
-)
-
 data class ProficiencyChoice(
     val desc: String,
     val choose: Int,

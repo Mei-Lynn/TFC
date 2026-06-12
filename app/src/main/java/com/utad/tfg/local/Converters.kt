@@ -40,4 +40,16 @@ class Converters {
         val type = object : TypeToken<List<MonsterAction>>() {}.type
         return gson.fromJson(actionsJson, type)
     }
+
+    @TypeConverter
+    fun fromStringList(list: List<String>?): String? {
+        return list?.let { gson.toJson(it) }
+    }
+
+    @TypeConverter
+    fun toStringList(json: String?): List<String>? {
+        if (json == null) return null
+        val type = object : TypeToken<List<String>>() {}.type
+        return gson.fromJson(json, type)
+    }
 }

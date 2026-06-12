@@ -15,7 +15,6 @@ class Paladin(override var level: Int = 1) : Class {
     override val hitDie: Int = 10
 
     override val cantrips: List<Int> = List(21) { 0 }
-    override val spells: List<List<Int>> = List(21) { emptyList() }
     override val spellSlots: List<List<Int>> = listOf(
         emptyList(),
         emptyList(), // 1
@@ -39,6 +38,16 @@ class Paladin(override var level: Int = 1) : Class {
         listOf(4, 3, 3, 3, 2), // 19
         listOf(4, 3, 3, 3, 2)  // 20
     ).let { list -> List(21) { if (it < list.size) list[it] else list.last() } }
+
+    override val spells: List<List<Int>> = listOf(
+        0, 0, 4, 4, 6, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15
+    ).mapIndexed { level, total ->
+        if (level == 0 || total == 0) emptyList()
+        else {
+            val maxSpellLevel = spellSlots[level].size
+            List(maxSpellLevel + 1) { if (it == 0) 0 else total }
+        }
+    }
 
     override val uniqueResources: List<ClassResource> = listOf(
         ClassResource.SimplePool(

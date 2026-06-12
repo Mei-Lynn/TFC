@@ -27,7 +27,6 @@ data class Character(
     val subraceIndex: String? = null,
     val classIndex: String,
     val subclassIndex: String? = null,
-    val backgroundIndex: String? = null,
     val level: Int,
     val maxHp: Int,
     val currentHp: Int,
