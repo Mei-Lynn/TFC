@@ -1,5 +1,6 @@
 package com.utad.tfg.model.classes.warlock
 
+import com.utad.tfg.local.entities.Character
 import com.utad.tfg.model.Ability
 import com.utad.tfg.model.ArmorType
 import com.utad.tfg.model.WeaponType
@@ -15,21 +16,12 @@ class Warlock(override var level: Int = 1) : Class {
     override val hitDie: Int = 8
 
     override val cantrips: List<Int> = listOf(0, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4)
-    override val spells: List<List<Int>> = listOf(
-        0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15
-    ).mapIndexed { level, total ->
-        if (level == 0) emptyList()
-        else {
-            val maxSpellLevel = when {
-                level >= 9 -> 5
-                level >= 7 -> 4
-                level >= 5 -> 3
-                level >= 3 -> 2
-                else -> 1
-            }
-            List(maxSpellLevel + 1) { if (it == 0) 0 else total }
-        }
+
+    override fun getPreparedSpellsLimit(char: Character): Int {
+        val spellsKnown = listOf(0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 12, 13, 13, 14, 14, 15, 15, 15, 15)
+        return spellsKnown[char.level]
     }
+
     override val spellSlots: List<List<Int>> = List(21) { emptyList() }
 
     override val uniqueResources: List<ClassResource> = listOf(

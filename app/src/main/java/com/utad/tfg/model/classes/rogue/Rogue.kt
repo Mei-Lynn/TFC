@@ -1,5 +1,6 @@
 package com.utad.tfg.model.classes.rogue
 
+import com.utad.tfg.local.entities.Character
 import com.utad.tfg.model.Ability
 import com.utad.tfg.model.ArmorType
 import com.utad.tfg.model.WeaponType
@@ -15,7 +16,9 @@ class Rogue(override var level: Int = 1) : Class {
     override val hitDie: Int = 8
 
     override val cantrips: List<Int> = List(21) { 0 }
-    override val spells: List<List<Int>> = List(21) { emptyList() }
+    override fun getPreparedSpellsLimit(char: Character): Int {
+        return 0
+    }
     override val spellSlots: List<List<Int>> = List(21) { emptyList() }
 
     override val uniqueResources: List<ClassResource> = listOf(

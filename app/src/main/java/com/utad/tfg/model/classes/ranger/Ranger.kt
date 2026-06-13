@@ -1,5 +1,6 @@
 package com.utad.tfg.model.classes.ranger
 
+import com.utad.tfg.local.entities.Character
 import com.utad.tfg.model.Ability
 import com.utad.tfg.model.ArmorType
 import com.utad.tfg.model.WeaponType
@@ -39,14 +40,9 @@ class Ranger(override var level: Int = 1) : Class {
         listOf(4, 3, 3, 3, 2)  // 20
     ).let { list -> List(21) { if (it < list.size) list[it] else list.last() } }
 
-    override val spells: List<List<Int>> = listOf(
-        0, 0, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11
-    ).mapIndexed { level, total ->
-        if (level == 0 || total == 0) emptyList()
-        else {
-            val maxSpellLevel = spellSlots[level].size
-            List(maxSpellLevel + 1) { if (it == 0) 0 else total }
-        }
+    override fun getPreparedSpellsLimit(char: Character): Int {
+        val spellsKnown = listOf(0, 2, 3, 4, 5, 6, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15)
+        return spellsKnown[char.level]
     }
 
     override val uniqueResources: List<ClassResource> = emptyList()

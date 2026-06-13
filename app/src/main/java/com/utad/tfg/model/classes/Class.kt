@@ -3,6 +3,7 @@ package com.utad.tfg.model.classes
 import com.utad.tfg.model.Ability
 import com.utad.tfg.model.ArmorType
 import com.utad.tfg.model.WeaponType
+import com.utad.tfg.local.entities.Character
 
 interface Class {
     val className: String //Duh
@@ -18,7 +19,7 @@ interface Class {
     val hitDie: Int
     
     val cantrips: List<Int> //Número de trucos disponibles por nivel
-    val spells: List<List<Int>> //Array multidimensional con el número de hechizos de cada nivel por nivel
+    fun getPreparedSpellsLimit(char: Character): Int //Función que calcula el número máximo de hechizos preparados posibles
     val spellSlots: List<List<Int>> //Número máximo de espacios de hechizo, misma lógica
     //Ej.: Spells[2][3] -> Número de hechizos de nivel 3 que tiene la clase al nivel 2.
     
