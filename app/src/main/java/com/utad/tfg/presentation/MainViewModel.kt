@@ -176,9 +176,10 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun deleteCharactersByID(selectedIDs: SnapshotStateList<Long>) {
+    fun deleteCharactersByID(selectedIDs: SnapshotStateList<Long>, afterDeletion: () -> Unit) {
         viewModelScope.launch {
             characterDao.deleteCharactersByID(selectedIDs)
+            afterDeletion()
         }
     }
 

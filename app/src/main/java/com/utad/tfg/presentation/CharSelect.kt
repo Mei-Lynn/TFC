@@ -59,7 +59,7 @@ fun CharSelectScreen(onAddCharacter: () -> Unit, onCharacterClick: () -> Unit) {
     Scaffold(
         topBar = { CharSelectTopbar() },
         floatingActionButton = { 
-            if (selectMode) RemoveCharacterButton(onClick = {vm.deleteCharactersByID(selectedIDs); selectedIDs.clear(); selectMode = false})
+            if (selectMode) RemoveCharacterButton(onClick = {vm.deleteCharactersByID(selectedIDs, {selectedIDs.clear()}); selectMode = false})
             else AddCharacterButton(onClick = onAddCharacter) 
         },
     ) { paddingValues ->
