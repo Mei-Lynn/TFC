@@ -34,6 +34,7 @@ import com.utad.tfg.R
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
@@ -125,7 +126,8 @@ fun BestiaryScreen() {
                         onInfoClick = {
                             selectedIndex = it
                             showDialog = true
-                        }
+                        },
+                        onDeleteClick = {vm.deleteSavedMonster(enemy.index)}
                     )
                 }
             }
@@ -134,19 +136,36 @@ fun BestiaryScreen() {
 }
 
 @Composable
-fun OfflineMonsterCard(enemy: Enemy, onInfoClick: (String) -> Unit) {
+fun OfflineMonsterCard(enemy: Enemy, onInfoClick: (String) -> Unit, onDeleteClick: () -> Unit,) {
     Card(
         modifier = Modifier
             .padding(8.dp)
             .fillMaxWidth()
             .clickable { onInfoClick(enemy.index) }
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = enemy.name, style = MaterialTheme.typography.titleMedium)
-            Text(text = enemy.type, style = MaterialTheme.typography.bodySmall)
+            Column(
+                Modifier.fillMaxWidth(0.7f),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Text(text = enemy.name, style = MaterialTheme.typography.titleMedium)
+                Text(text = enemy.type, style = MaterialTheme.typography.bodySmall)
+            }
+            IconButton(
+                onClick = onDeleteClick,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = stringResource(R.string.download_delete)
+                )
+            }
         }
     }
 }
