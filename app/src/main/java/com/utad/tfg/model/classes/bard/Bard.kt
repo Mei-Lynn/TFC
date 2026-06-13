@@ -49,13 +49,22 @@ class Bard(override var level: Int = 1) : Class {
         }
     }
 
-    override val uniqueResources: List<ClassResource> = listOf(
+    override val uniqueResources: List<ClassResource> by lazy {
+        listOf(
         ClassResource.DicePool(
             name = "Bardic Inspiration",
-            count = List(21) { 0 },
-            diceSize = listOf(0, 6, 6, 6, 6, 8, 8, 8, 8, 8, 10, 10, 10, 10, 10, 12, 12, 12, 12, 12, 12)
+            count = {char -> maxOf(1, Ability.calculateModifier(char.charisma))},
+            diceSize = {char ->
+                when {
+                    char.level >= 15 -> 12
+                    char.level >= 10 -> 10
+                    char.level >= 5 -> 8
+                    else -> 6
+                }
+            }
         )
     )
+    }
 
     override val baseFeatures: List<ClassFeature> = listOf(
         ClassFeature(

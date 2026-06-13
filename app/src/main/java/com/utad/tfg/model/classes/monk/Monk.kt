@@ -25,8 +25,15 @@ class Monk(override var level: Int = 1) : Class {
         ),
         ClassResource.DicePool(
             name = "Martial Arts",
-            count = List(21) { 1 },
-            diceSize = listOf(0, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 8, 8, 8, 8, 8, 8, 10, 10, 10, 10)
+            count = { 1 },
+            diceSize = {char ->
+                when {
+                    char.level >= 18 -> 10
+                    char.level >= 11 -> 8
+                    char.level >= 5 -> 6
+                    else -> 4
+                }
+            }
         )
     )
 

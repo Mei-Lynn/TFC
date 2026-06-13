@@ -66,4 +66,23 @@ object ClassRegistry {
             else -> emptyList()
         }
     }
+
+    fun createClass(classIndex: String, level: Int = 1): Class? {
+        return when (classIndex) {
+            "artificer" -> Artificer(level)
+            "barbarian" -> Barbarian(level)
+            "bard" -> Bard(level)
+            "cleric" -> Cleric(level)
+            "druid" -> Druid(level)
+            "fighter" -> Fighter(level)
+            "monk" -> Monk(level)
+            "paladin" -> Paladin(level)
+            "ranger" -> Ranger(level)
+            "rogue" -> Rogue(level)
+            "sorcerer" -> Sorcerer(level)
+            "warlock" -> Warlock(level)
+            "wizard" -> Wizard(level)
+            else -> null
+        }
+    }
 }

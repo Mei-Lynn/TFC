@@ -1,5 +1,6 @@
 package com.utad.tfg.model.classes
 
+import com.utad.tfg.local.entities.Character
 sealed class ClassResource {
     abstract val name: String
 
@@ -16,7 +17,7 @@ sealed class ClassResource {
 
     data class DicePool(
         override val name: String,
-        val count: List<Int>,
-        val diceSize: List<Int>
+        val count: (character: Character) -> Int,
+        val diceSize: (character: Character) -> Int
     ) : ClassResource()
 }

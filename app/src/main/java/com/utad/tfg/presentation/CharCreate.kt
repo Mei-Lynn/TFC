@@ -1,24 +1,33 @@
 package com.utad.tfg.presentation
 
 import android.util.Log
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.utad.tfg.model.Ability
+import com.utad.tfg.model.ArmorType
 import com.utad.tfg.model.DndRace
 import com.utad.tfg.model.classes.Subclass
+import com.utad.tfg.model.equipment.Armor
+import com.utad.tfg.model.equipment.Equipment
+import com.utad.tfg.model.equipment.EquipmentRegistry
+import com.utad.tfg.model.equipment.Weapon
+import com.utad.tfg.model.equipment.WeaponProperty
 import com.utad.tfg.model.classes.Class as DndClass
 
 import androidx.compose.ui.tooling.preview.Preview
@@ -29,12 +38,12 @@ import com.utad.tfg.ui.theme.TFGTheme
 fun CharCreateScreen(
     onCharacterCreated: () -> Unit = {}
 ) {
-    val vm = hiltViewModel<MainViewModel>()
-    val races by (vm.races.collectAsState())
-    val classes by (vm.classes.collectAsState())
-    val subraces by (vm.subraces.collectAsState())
-    val subclasses by (vm.subclasses.collectAsState())
-    val filteredSpells by (vm.filteredSpells.collectAsState())
+    val vm = hiltViewModel<MainViewModel>(LocalContext.current as ComponentActivity)
+    val races by vm.races.collectAsState()
+    val classes by vm.classes.collectAsState()
+    val subraces by vm.subraces.collectAsState()
+    val subclasses by vm.subclasses.collectAsState()
+    val filteredSpells by vm.filteredSpells.collectAsState()
 
     CharCreateContent(
         races = races,
@@ -44,8 +53,8 @@ fun CharCreateScreen(
         filteredSpells = filteredSpells,
         onRaceSelected = { vm.getSubraces(it) },
         onClassSelected = { vm.getSubclasses(it); vm.filterSpells(0..1, it) },
-        onSaveCharacter = { name, race, subrace, dndClass, subclass, scores ->
-            vm.saveCharacter(name, race, subrace, dndClass, subclass, scores)
+        onSaveCharacter = { name, race, subrace, dndClass, subclass, scores, cantrips, spells, mainHand, offHand, armor ->
+            vm.saveCharacter(name, race, subrace, dndClass, subclass, scores, cantrips, spells, mainHand, offHand, armor)
             onCharacterCreated()
         }
     )
@@ -60,13 +69,17 @@ fun CharCreateContent(
     filteredSpells: List<SpellEntity>,
     onRaceSelected: (String) -> Unit,
     onClassSelected: (String) -> Unit,
-    onSaveCharacter: (String, DndRace, DndRace?, DndClass, Subclass?, Map<Ability, Int>) -> Unit
+    onSaveCharacter: (String, DndRace, DndRace?, DndClass, Subclass?, Map<Ability, Int>, List<SpellEntity>, List<SpellEntity>, String?, String?, String?) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var selectedRace by remember { mutableStateOf<DndRace?>(null) }
     var selectedSubrace by remember { mutableStateOf<DndRace?>(null) }
     var selectedClass by remember { mutableStateOf<DndClass?>(null) }
     var selectedSubclass by remember { mutableStateOf<Subclass?>(null) }
+
+    var selectedMainHand by remember { mutableStateOf<Weapon?>(null) }
+    var selectedOffHand by remember { mutableStateOf<Equipment?>(null) }
+    var selectedArmor by remember { mutableStateOf<Armor?>(null) }
 
     val abilityScores = remember { 
         mutableStateMapOf<Ability, Int>().apply {
@@ -80,6 +93,9 @@ fun CharCreateContent(
 
     var modPlus1 : Ability? by remember { mutableStateOf(null) }
     var modPlus2 : Ability? by remember { mutableStateOf(null) }
+
+    val chosenCantrips = remember { mutableStateListOf<SpellEntity>() }
+    val chosenSpells = remember { mutableStateListOf<SpellEntity>() }
 
     Column(
         modifier = Modifier
@@ -131,12 +147,14 @@ fun CharCreateContent(
             onOptionSelected = {
                 selectedClass = it
                 selectedSubclass = null
+                chosenCantrips.clear()
+                chosenSpells.clear()
                 it?.let { onClassSelected(it.classIndex) }
             }
         )
 
         // Subclase
-        if (subclasses.isNotEmpty()) {
+        if (subclasses.isNotEmpty() && selectedClass?.subclassProgression?.minOrNull() == 1) {
             DropdownSelector(
                 label = "Subclass",
                 options = subclasses,
@@ -145,6 +163,47 @@ fun CharCreateContent(
                 onOptionSelected = { selectedSubclass = it }
             )
         }
+
+        // Equipamiento
+        Text("Equipment", style = MaterialTheme.typography.titleLarge)
+        
+        DropdownSelector(
+            label = "Main Hand",
+            options = EquipmentRegistry.weapons,
+            selectedOption = selectedMainHand,
+            optionName = { it.weaponName },
+            onOptionSelected = { selectedMainHand = it }
+        )
+
+        if (selectedMainHand?.properties?.contains(WeaponProperty.TWO_HANDED) == false) {
+            val offHandOptions = remember(selectedMainHand) {
+                val weapons = EquipmentRegistry.weapons.filter { it.properties.contains(WeaponProperty.LIGHT) }
+                val shields = EquipmentRegistry.armors.filter { it.armorType == ArmorType.Shields }
+                weapons + shields
+            }
+
+            DropdownSelector(
+                label = "Off Hand",
+                options = offHandOptions,
+                selectedOption = selectedOffHand,
+                optionName = {
+                    when (it) {
+                        is Weapon -> it.weaponName
+                        is Armor -> it.armorName
+                        else -> "Unknown"
+                    }
+                },
+                onOptionSelected = { selectedOffHand = it }
+            )
+        }
+
+        DropdownSelector(
+            label = "Armor",
+            options = EquipmentRegistry.armors.filter { armor -> armor.armorType != ArmorType.Shields },
+            selectedOption = selectedArmor,
+            optionName = { it.armorName },
+            onOptionSelected = { selectedArmor = it }
+        )
 
         //Distribución de puntos de habilidad
         Text("Ability Scores (Points: $remainingPoints/$totalPoints)", style = MaterialTheme.typography.titleLarge)
@@ -177,18 +236,38 @@ fun CharCreateContent(
             )
         }
 
-        Text("Spells", style = MaterialTheme.typography.titleLarge)
-        if (filteredSpells.isNotEmpty() && selectedClass!!.spells[1].isNotEmpty()) {
+        Text("Prepared spells", style = MaterialTheme.typography.titleLarge)
+        if (selectedClass != null && filteredSpells.isNotEmpty() && selectedClass!!.spells[1].isNotEmpty()) {
             val spellsByLevel = filteredSpells.groupBy { it.level }
 
-            spellsByLevel[0]?.let { cantrips ->
-                Text("Cantrips (x/${selectedClass!!.cantrips[1]}):", style = MaterialTheme.typography.titleSmall)
-                cantrips.forEach { Text("- ${it.name}") }
+            val maxCantrips = selectedClass!!.cantrips[1]
+
+            SpellSelector(
+                "Cantrips",
+                maxCantrips,
+                spellsByLevel[0] ?: emptyList(),
+                chosenCantrips
+            ) {
+                if (chosenCantrips.contains(it)) {
+                    chosenCantrips.remove(it)
+                } else if (chosenCantrips.size < maxCantrips) {
+                    chosenCantrips.add(it)
+                }
             }
 
-            spellsByLevel[1]?.let { lvl1 ->
-                Text("Level 1 Spells (x/${selectedClass!!.spells[1][1]}):", style = MaterialTheme.typography.titleSmall)
-                lvl1.forEach { Text("- ${it.name}") }
+            val maxSpells = selectedClass!!.spells[1][1]
+
+            SpellSelector(
+                "Level 1 Spells",
+                maxSpells,
+                spellsByLevel[1] ?: emptyList(),
+                chosenSpells
+            ) {
+                if (chosenSpells.contains(it)) {
+                    chosenSpells.remove(it)
+                } else if (chosenSpells.size < maxSpells) {
+                    chosenSpells.add(it)
+                }
             }
         } else if (selectedClass != null) {
             Text("This class doesn't have any spells available.", style = MaterialTheme.typography.bodyMedium)
@@ -213,7 +292,12 @@ fun CharCreateContent(
                     selectedSubrace,
                     selectedClass!!,
                     selectedSubclass,
-                    abilityScores
+                    abilityScores,
+                    chosenCantrips.toList(),
+                    chosenSpells.toList(),
+                    selectedMainHand?.weaponIndex,
+                    if (selectedMainHand?.properties?.contains(WeaponProperty.TWO_HANDED) == false) selectedOffHand?.index else null,
+                    selectedArmor?.armorIndex
                 )
             },
             modifier = Modifier.fillMaxWidth(),
@@ -290,15 +374,11 @@ fun AbilityScoreRow(
                 Icon(Icons.Default.Remove, contentDescription = "Decrease")
             }
 
-            Text("$score", modifier = Modifier
+            Text("${score + if (modPlus1) 1 else 0 + if (modPlus2) 2 else 0}", modifier = Modifier
                 .padding(horizontal = 8.dp)
                 .widthIn(32.dp), fontSize = 18.sp)
 
-            val modifier = Ability.calculateModifier(score)
-            Text("(${
-                if (modifier >= 0) modifier
-                else "Min"
-            })")
+            Text("(${Ability.calculateModifier(score)})")
 
             IconButton(onClick = onIncrease, enabled = canIncrease) {
                 Icon(Icons.Default.Add, contentDescription = "Increase")
@@ -310,6 +390,40 @@ fun AbilityScoreRow(
 
         // +2 Innato
         Checkbox(modPlus2,onModPlus2Click)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SpellSelector(
+    title: String,
+    maxSelections: Int,
+    availableSpells: List<SpellEntity>,
+    selectedSpells: Collection<SpellEntity>,
+    onToggleSpell: (SpellEntity) -> Unit
+) {
+    Column {
+        Text("$title (${selectedSpells.size}/$maxSelections)", style = MaterialTheme.typography.titleSmall)
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            availableSpells.forEach { spell ->
+                val isSelected = selectedSpells.contains(spell)
+                FilterChip(
+                    selected = isSelected,
+                    onClick = {
+                        if (isSelected || selectedSpells.size < maxSelections) {
+                            onToggleSpell(spell)
+                        }
+                    },
+                    label = { Text(spell.name) },
+                    leadingIcon = if (isSelected) {
+                        { Icon(Icons.Default.Check, contentDescription = "Spell is selected", modifier = Modifier.size(18.dp)) }
+                    } else null
+                )
+            }
+        }
     }
 }
 
@@ -347,7 +461,7 @@ fun CharCreatePreview() {
             filteredSpells = emptyList(),
             onRaceSelected = {},
             onClassSelected = {},
-            onSaveCharacter = { _, _, _, _, _, _ -> }
+            onSaveCharacter = { _, _, _, _, _, _, _, _, _, _, _ -> }
         )
     }
 }

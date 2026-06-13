@@ -21,8 +21,19 @@ class Rogue(override var level: Int = 1) : Class {
     override val uniqueResources: List<ClassResource> = listOf(
         ClassResource.DicePool(
             name = "Sneak Attack",
-            count = listOf(0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10),
-            diceSize = List(21) { 6 }
+            count = {char -> when {
+                char.level >= 19 -> 10
+                char.level >= 17 -> 9
+                char.level >= 15 -> 8
+                char.level >= 13 -> 7
+                char.level >= 11 -> 6
+                char.level >= 9 -> 5
+                char.level >= 7 -> 4
+                char.level >= 5 -> 3
+                char.level >= 3 -> 2
+                else -> 1
+            }},
+            diceSize = { 6 }
         )
     )
 

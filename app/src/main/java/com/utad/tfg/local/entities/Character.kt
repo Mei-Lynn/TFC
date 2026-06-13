@@ -39,5 +39,10 @@ data class Character(
     val wisdom: Int = 10,
     val charisma: Int = 10,
     val imgUri: String? = null,
-    val state: CharState = CharState.noCampaign
+    val state: CharState = CharState.noCampaign,
+    val cantrips: List<String> = emptyList(),
+    val preparedSpells: List<String> = emptyList(),
+    val mainHandIndex: String? = null,
+    val offHandIndex: String? = null,
+    val armorIndex: String? = null
 )

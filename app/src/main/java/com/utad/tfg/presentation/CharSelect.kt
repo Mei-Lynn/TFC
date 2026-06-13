@@ -1,6 +1,6 @@
 package com.utad.tfg.presentation
 
-import android.util.Log
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -40,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -47,8 +48,8 @@ import com.utad.tfg.local.entities.Character
 import com.utad.tfg.model.CharState
 
 @Composable
-fun CharSelectScreen(onAddCharacter: () -> Unit) {
-    val vm = hiltViewModel<MainViewModel>()
+fun CharSelectScreen(onAddCharacter: () -> Unit, onCharacterClick: () -> Unit) {
+    val vm = hiltViewModel<MainViewModel>(LocalContext.current as ComponentActivity)
     var selectMode by remember { mutableStateOf(false) }
     val characters by vm.localCharacters.collectAsStateWithLifecycle()
     val selectedIDs = remember { mutableStateListOf<Long>() }
@@ -82,7 +83,8 @@ fun CharSelectScreen(onAddCharacter: () -> Unit) {
                             selectedIDs.add(character.id)
                         }
                         selectMode = selectedIDs.isNotEmpty()
-                    }
+                    },
+                    onClick = { vm.setSelectedCharacter(it); onCharacterClick() }
                 )
             }
         }
@@ -95,7 +97,8 @@ fun CharacterCard(
     character: Character,
     isSelected: Boolean,
     isSelectMode: Boolean,
-    onToggleSelect: () -> Unit
+    onToggleSelect: () -> Unit,
+    onClick: (Character) -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -103,6 +106,7 @@ fun CharacterCard(
             .combinedClickable(
                 onClick = {
                     if (isSelectMode) onToggleSelect()
+                    else onClick(character)
                 },
                 onLongClick = onToggleSelect
             ),

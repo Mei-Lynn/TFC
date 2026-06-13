@@ -76,10 +76,14 @@ fun MainNavigation() {
             startDestination = "charSelect",
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable("charSelect") { CharSelectScreen(onAddCharacter = { navController.navigate("charCreate") }) }
+            composable("charSelect") { CharSelectScreen(
+                onAddCharacter = { navController.navigate("charCreate") },
+                onCharacterClick = { navController.navigate("charDetails") }
+            ) }
             composable("charCreate") { CharCreateScreen(onCharacterCreated = { navController.navigate("charSelect") }) }
             composable("campaigns") { Campaigns() }
             composable("bestiary") { BestiaryScreen() }
+            composable("charDetails") { CharDetailsScreen(onBack = { navController.popBackStack() }) }
         }
     }
 }

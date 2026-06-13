@@ -23,4 +23,10 @@ interface SpellDao {
 
     @Query("SELECT * FROM spells")
     fun getAllSpells(): Flow<List<SpellEntity>>
+
+    @Query("SELECT * FROM spells WHERE `index` = :index")
+    suspend fun getSpellByIndex(index: String): SpellEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSpell(spell: SpellEntity)
 }

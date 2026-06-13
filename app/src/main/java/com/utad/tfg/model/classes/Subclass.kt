@@ -10,10 +10,6 @@ sealed class Trigger {
     data object OnTakeDamage : Trigger()
 }
 
-/**
- * Placeholder for the data needed during a battle trigger.
- * This will be expanded as the battle simulator is developed.
- */
 data class BattleContext(
     val characterId: Long,
     val targetId: Long? = null,

@@ -17,6 +17,7 @@ import com.utad.tfg.remote.ArmorClass
 import com.utad.tfg.model.classes.Class as DndClass
 import com.utad.tfg.remote.DndApiService
 import com.utad.tfg.remote.DndMonsterResponse
+import com.utad.tfg.remote.DndSpellResponse
 import com.utad.tfg.remote.JsonResource
 import com.utad.tfg.remote.MonsterSpeed
 import com.utad.tfg.remote.NetworkUtils
@@ -129,9 +130,22 @@ class MainViewModel @Inject constructor(
         subrace: DndRace?,
         dndClass: DndClass,
         subclass: Subclass?,
-        abilityScores: Map<Ability, Int>
+        abilityScores: Map<Ability, Int>,
+        cantrips: List<SpellEntity> = emptyList(),
+        spells: List<SpellEntity> = emptyList(),
+        mainHandIndex: String? = null,
+        offHandIndex: String? = null,
+        armorIndex: String? = null
     ) {
         viewModelScope.launch {
+            // Lazy sync spell details before saving character
+            val allSpellsToSync = cantrips + spells
+            allSpellsToSync.forEach { spell ->
+                if (!spell.isSynced) {
+                    spellRepository.fetchSpellDetails(spell.index)
+                }
+            }
+
             val dex = abilityScores[Ability.Dexterity] ?: 10
             val newChar = Character(
                 name = name,
@@ -148,9 +162,70 @@ class MainViewModel @Inject constructor(
                 constitution = abilityScores[Ability.Constitution] ?: 10,
                 intelligence = abilityScores[Ability.Intelligence] ?: 10,
                 wisdom = abilityScores[Ability.Wisdom] ?: 10,
-                charisma = abilityScores[Ability.Charisma] ?: 10
+                charisma = abilityScores[Ability.Charisma] ?: 10,
+                cantrips = cantrips.map { it.index },
+                preparedSpells = spells.map { it.index },
+                mainHandIndex = mainHandIndex,
+                offHandIndex = offHandIndex,
+                armorIndex = armorIndex
             )
             characterDao.insertCharacter(newChar)
+        }
+    }
+
+    private val _selectedCharacter = MutableStateFlow<Character?>(null)
+    val selectedCharacter = _selectedCharacter.asStateFlow()
+
+    fun setSelectedCharacter(character: Character) {
+        viewModelScope.launch {
+            _selectedCharacter.value = character
+        }
+    }
+
+    private val _fullSelectedCharacterSpells = MutableStateFlow<List<SpellEntity>>(emptyList())
+    val fullSelectedCharacterSpells = _fullSelectedCharacterSpells.asStateFlow()
+
+    fun loadSelectedCharacterSpells() {
+        val char = _selectedCharacter.value ?: return
+        viewModelScope.launch {
+            val allIndices = char.cantrips + char.preparedSpells
+            val entities = mutableListOf<SpellEntity>()
+            allIndices.forEach { index ->
+                val entity = spellRepository.fetchSpellDetails(index)
+                if (entity != null) entities.add(entity)
+            }
+            _fullSelectedCharacterSpells.value = entities
+        }
+    }
+
+    private val _spellDetails = MutableStateFlow<DndSpellResponse?>(null)
+    val spellDetails = _spellDetails.asStateFlow()
+
+    fun fetchSpellDetails(index: String) {
+        viewModelScope.launch {
+            try {
+                _spellDetails.value = dndApiService.getSpellDetails(index, lang = languageTag)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun clearSpellDetails() {
+        viewModelScope.launch {
+            _spellDetails.value = null
+        }
+    }
+
+    fun updateCharacterSpells(character: Character, newCantrips: List<String>, newPreparedSpells: List<String>) {
+        viewModelScope.launch {
+            val updatedChar = character.copy(
+                cantrips = newCantrips,
+                preparedSpells = newPreparedSpells
+            )
+            characterDao.updateCharacter(updatedChar)
+            _selectedCharacter.value = updatedChar
+            loadSelectedCharacterSpells()
         }
     }
 

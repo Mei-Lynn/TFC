@@ -9,5 +9,12 @@ data class SpellEntity(
     val index: String,
     val name: String,
     val level: Int,
-    val classes: List<String>
+    val classes: List<String>,
+    val damageDice: String? = null,
+    val damageType: String? = null,
+    val range: String? = null,
+    val castingTime: String? = null,
+    val description: String? = null,
+    val isConcentration: Boolean = false,
+    val isSynced: Boolean = false
 )

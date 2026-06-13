@@ -1,5 +1,6 @@
 package com.utad.tfg.presentation
 
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -42,6 +43,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,7 +56,7 @@ import com.utad.tfg.remote.DndMonsterResponse
 
 @Composable
 fun BestiaryScreen() {
-    val vm = hiltViewModel<MainViewModel>()
+    val vm = hiltViewModel<MainViewModel>(LocalContext.current as ComponentActivity)
     val isOnline by vm.isNetworkAvailable.collectAsStateWithLifecycle()
     val monsters by vm.monsters.collectAsStateWithLifecycle()
     val localEnemies by vm.localEnemies.collectAsStateWithLifecycle()
@@ -187,7 +189,7 @@ fun OnlineMonsterCard(
 
 @Composable
 fun MonsterInfoDialog(onDismiss: () -> Unit, index: String) {
-    val vm = hiltViewModel<MainViewModel>()
+    val vm = hiltViewModel<MainViewModel>(LocalContext.current as ComponentActivity)
     val monster by vm.monsterDetails.collectAsStateWithLifecycle()
 
     LaunchedEffect(index) {

@@ -52,6 +52,35 @@ class SpellRepository @Inject constructor(
         spellDao.insertSpells(spellMap.values.toList())
     }
 
+    suspend fun fetchSpellDetails(index: String): SpellEntity? {
+        val existing = spellDao.getSpellByIndex(index)
+        if (existing?.isSynced == true) return existing
+
+        return try {
+            val response = dndApiService.getSpellDetails(index, lang = languageTag)
+            val updated = (existing ?: SpellEntity(
+                index = response.index,
+                name = response.name,
+                level = response.level,
+                classes = response.classes.map { it.index }
+            )).copy(
+                damageDice = response.damage?.damageAtSlotLevel?.get(response.level.toString()) 
+                    ?: response.damage?.damageAtCharacterLevel?.get("1"), // Default for cantrips or simple damage
+                damageType = response.damage?.damageType?.name,
+                range = response.range,
+                castingTime = response.castingTime,
+                description = response.desc.joinToString("\n"),
+                isConcentration = response.concentration,
+                isSynced = true
+            )
+            spellDao.insertSpell(updated)
+            updated
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
     fun getFilteredSpells(level: Int, className: String): Flow<List<SpellEntity>> {
         return spellDao.getSpellsByLevelAndClass(level, className)
     }
