@@ -42,6 +42,7 @@ import com.utad.tfg.model.equipment.WeaponProperty
 import com.utad.tfg.remote.DndSpellResponse
 import androidx.compose.ui.res.stringResource
 import com.utad.tfg.R
+import androidx.compose.runtime.collectAsState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -433,8 +434,9 @@ fun SpellsSection(spells: List<SpellEntity>, onSpellClick: (String) -> Unit) {
 fun SpellInfoDialog(onDismiss: () -> Unit, index: String) {
     val vm = hiltViewModel<MainViewModel>(LocalContext.current as ComponentActivity)
     val spell by vm.spellDetails.collectAsStateWithLifecycle()
+    val isOnline by vm.isNetworkAvailable.collectAsState()
 
-    LaunchedEffect(index) {
+    LaunchedEffect(index, isOnline) {
         vm.fetchSpellDetails(index)
     }
 
