@@ -113,8 +113,8 @@ fun CharacterCard(
                 onLongClick = onToggleSelect
             ),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer 
-                             else MaterialTheme.colorScheme.surface
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primary
+                             else MaterialTheme.colorScheme.surfaceVariant
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -132,7 +132,7 @@ fun CharacterCard(
                     text = character.name,
                     style = MaterialTheme.typography.titleLarge
                 )
-                val (statusText, statusColor) = when (character.state) {
+                /*val (statusText, statusColor) = when (character.state) {
                     CharState.active -> "Active" to Color(0xFF4CAF50)
                     CharState.dead -> "Dead" to Color(0xFFF44336)
                     CharState.noCampaign -> "Waiting" to Color(0xFF2196F3)
@@ -142,7 +142,7 @@ fun CharacterCard(
                     text = statusText,
                     color = statusColor,
                     style = MaterialTheme.typography.labelLarge
-                )
+                )*/
             }
 
             Spacer(Modifier.height(8.dp))
@@ -155,7 +155,6 @@ fun CharacterCard(
             Text(
                 text = "Level ${character.level} $race $dndClass",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(Modifier.height(8.dp))

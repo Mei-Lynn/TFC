@@ -4,12 +4,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -49,6 +51,7 @@ fun MainNavigation() {
     val icons = listOf(Icons.Default.Person, /*Icons.Default.Home,*/ Icons.AutoMirrored.Filled.List)
 
     Scaffold(
+        modifier = Modifier.background(MaterialTheme.colorScheme.background),
         bottomBar = {
             NavigationBar {
                 items.forEachIndexed { index, item ->
