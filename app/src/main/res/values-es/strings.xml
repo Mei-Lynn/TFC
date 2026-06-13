@@ -48,5 +48,6 @@
     <string name="level_x">Nivel %1$d</string>
     <string name="swap">Intercambiar</string>
     <string name="cancel_swap">Cancelar Intercambio</string>
+    <string name="bestiary_searchbar">Busca monstruos...</string>
 </resources>
 

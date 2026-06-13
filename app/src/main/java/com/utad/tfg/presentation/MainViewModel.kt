@@ -309,6 +309,12 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun emptyMonsterDetails() {
+        viewModelScope.launch {
+            _monsterDetails.value = null
+        }
+    }
+
     fun fetchClassSpells(classIndex: String) {
         viewModelScope.launch {
             try {

@@ -73,7 +73,7 @@ fun BestiaryScreen() {
 
     if (showDialog) {
         MonsterInfoDialog(
-            onDismiss = { showDialog = false },
+            onDismiss = { showDialog = false; vm.emptyMonsterDetails() },
             index = selectedIndex
         )
     }
@@ -81,7 +81,7 @@ fun BestiaryScreen() {
     Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(modifier = Modifier.height(8.dp))
         CustomSearchBar(
-            placeholder = "Search monsters...",
+            placeholder = stringResource(R.string.bestiary_searchbar),
             onSearchTextChanged = { searchString = it }
         )
 

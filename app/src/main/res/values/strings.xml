@@ -48,4 +48,5 @@
     <string name="level_x">Level %1$d</string>
     <string name="swap">Swap</string>
     <string name="cancel_swap">Cancel Swap</string>
+    <string name="bestiary_searchbar">Search monsters...</string>
 </resources>
