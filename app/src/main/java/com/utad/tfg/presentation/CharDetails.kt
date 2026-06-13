@@ -30,6 +30,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.utad.tfg.local.entities.Character
 import com.utad.tfg.local.entities.SpellEntity
 import com.utad.tfg.model.Ability
+import com.utad.tfg.model.classes.ClassFeature
 import com.utad.tfg.model.classes.ClassRegistry
 import com.utad.tfg.model.classes.ClassResource
 import com.utad.tfg.model.classes.Class as DndClass
@@ -39,6 +40,8 @@ import com.utad.tfg.model.equipment.EquipmentRegistry
 import com.utad.tfg.model.equipment.Weapon
 import com.utad.tfg.model.equipment.WeaponProperty
 import com.utad.tfg.remote.DndSpellResponse
+import androidx.compose.ui.res.stringResource
+import com.utad.tfg.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,10 +80,23 @@ fun CharDetailsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                modifier = Modifier.fillMaxWidth(0.95f),
                 title = { Text(character?.name ?: "Character Details") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    }
+                },
+                actions = {
+                    character?.let { char ->
+                        if (char.level < 20) {
+                            OutlinedButton(onClick = onLevelUp) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Text(stringResource(R.string.level_up))
+                                    Icon(Icons.Default.Upgrade, contentDescription = stringResource(R.string.level_up))
+                                }
+                            }
+                        }
                     }
                 }
             )
@@ -138,6 +154,12 @@ fun CharDetailsScreen(
 
                 HorizontalDivider()
 
+                // Features
+                if (dndClass != null) {
+                    FeaturesSection(char, dndClass)
+                    HorizontalDivider()
+                }
+
                 // Spells
                 if (characterSpells.isNotEmpty()) {
                     SpellsSection(
@@ -156,21 +178,9 @@ fun CharDetailsScreen(
                     ) {
                         Icon(Icons.Default.Edit, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Change Prepared Spells")
+                        Text(stringResource(R.string.change_prepared_spells))
                     }
                 }
-
-                if (char.level < 20) {
-                    OutlinedButton(
-                        onClick = onLevelUp,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.Upgrade, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Level Up")
-                    }
-                }
-
             }
         } ?: Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
@@ -222,7 +232,7 @@ fun AbilityScoresGrid(char: Character) {
     )
 
     Column {
-        Text("Ability Scores", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.ability_scores), style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             scores.take(3).forEach { (label, score) ->
@@ -258,7 +268,7 @@ fun SavingThrowsSection(char: Character, dndClass: DndClass) {
     val proficiencies = dndClass.savingThrows
 
     Column {
-        Text("Saving Throws", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.saving_throws), style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
         
         val rows = listOf(
@@ -306,7 +316,7 @@ fun ResourcesSection(char: Character, dndClass: DndClass) {
         // Spell Slots
         val slots = dndClass.spellSlots[char.level]
         if (slots.isNotEmpty()) {
-            Text("Spell Slots", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.spell_slots), style = MaterialTheme.typography.titleMedium)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -321,7 +331,7 @@ fun ResourcesSection(char: Character, dndClass: DndClass) {
 
         // Unique Resources
         if (dndClass.uniqueResources.isNotEmpty()) {
-            Text("Class Resources", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.class_resources), style = MaterialTheme.typography.titleMedium)
             dndClass.uniqueResources.forEach { resource ->
                 when (resource) {
                     is ClassResource.SimplePool -> {
@@ -329,7 +339,7 @@ fun ResourcesSection(char: Character, dndClass: DndClass) {
                         if (amount > 0) {
                             Text("${resource.name}: $amount", style = MaterialTheme.typography.bodyMedium)
                         } else {
-                            Text("Go up in levels to unlock", style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.go_up_levels_unlock), style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                     is ClassResource.LevelledSlots -> {
@@ -368,7 +378,7 @@ fun EquipmentSection(char: Character) {
     val armor = EquipmentRegistry.getArmorByIndex(char.armorIndex ?: "")
 
     Column {
-        Text("Equipment", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.equipment), style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
         
         EquipmentItem("Main Hand", mainHand?.weaponName ?: "Empty")
@@ -393,7 +403,7 @@ fun EquipmentItem(label: String, name: String) {
 @Composable
 fun SpellsSection(spells: List<SpellEntity>, onSpellClick: (String) -> Unit) {
     Column {
-        Text("Prepared Spells & Cantrips", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.prepared_spells_and_cantrips), style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
@@ -444,7 +454,7 @@ fun SpellInfoDialog(onDismiss: () -> Unit, index: String) {
                 ) {
                     CircularProgressIndicator()
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Loading spell details...")
+                    Text(stringResource(R.string.loading_spell_details))
                 }
             } else {
                 val s = spell!!
@@ -482,13 +492,13 @@ fun SpellInfoDialog(onDismiss: () -> Unit, index: String) {
 
                     if (!s.higherLevel.isNullOrEmpty()) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("At Higher Levels", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.at_higher_levels), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                         Text(text = s.higherLevel.joinToString("\n"), style = MaterialTheme.typography.bodySmall)
                     }
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
-                        Text("Close")
+                        Text(stringResource(R.string.close))
                     }
                 } 
             }
@@ -546,6 +556,9 @@ fun SpellChangeDialog(onDissmiss: () -> Unit, character: Character) {
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
+
+                Text(stringResource(R.string.max_cantrips_spells, dndClass?.cantrips?.getOrNull(character.level) ?: 0, dndClass?.getPreparedSpellsLimit(character) ?: 0))
+
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Column(
@@ -555,10 +568,10 @@ fun SpellChangeDialog(onDissmiss: () -> Unit, character: Character) {
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     if (dndClass != null) {
-                        val maxCantrips = dndClass.cantrips[character.level]
+                        val maxCantrips = dndClass.cantrips.getOrNull(character.level) ?: 0
                         if (maxCantrips > 0) {
                             SpellSelector(
-                                title = "Cantrips",
+                                title = stringResource(R.string.cantrips),
                                 maxSelections = maxCantrips,
                                 availableSpells = spellsByLevel[0] ?: emptyList(),
                                 selectedSpells = currentCantrips,
@@ -573,11 +586,11 @@ fun SpellChangeDialog(onDissmiss: () -> Unit, character: Character) {
                         }
 
                         val maxSpells = dndClass.getPreparedSpellsLimit(character)
-                        val availableSpells by remember { mutableIntStateOf(maxSpells - currentSpells.size) }
+                        val availableSpells = maxSpells - currentSpells.size
 
                         if (maxSpells > 0) {
                             SpellSelector(
-                                title = "Level 1 Spells",
+                                title = stringResource(R.string.level_1_spells),
                                 maxSelections = availableSpells,
                                 availableSpells = spellsByLevel[1] ?: emptyList(),
                                 selectedSpells = currentSpells,
@@ -596,14 +609,14 @@ fun SpellChangeDialog(onDissmiss: () -> Unit, character: Character) {
                             val availableForLvl = spellsByLevel[lvl] ?: emptyList()
                             if (availableForLvl.isNotEmpty()) {
                                 SpellSelector(
-                                    title = "Level $lvl Spells",
+                                    title = stringResource(R.string.level_x_spells, lvl),
                                     maxSelections = availableSpells,
                                     availableSpells = availableForLvl,
                                     selectedSpells = currentSpells,
                                     onToggleSpell = { spell ->
                                         if (currentSpells.contains(spell)) {
                                             currentSpells.remove(spell)
-                                        } else {
+                                        } else if (currentSpells.size < maxSpells) {
                                             currentSpells.add(spell)
                                         }
                                     }
@@ -618,7 +631,7 @@ fun SpellChangeDialog(onDissmiss: () -> Unit, character: Character) {
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDissmiss) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.cancel))
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(onClick = {
@@ -629,7 +642,7 @@ fun SpellChangeDialog(onDissmiss: () -> Unit, character: Character) {
                         )
                         onDissmiss()
                     }) {
-                        Text("Save")
+                        Text(stringResource(R.string.save))
                     }
                 }
             }
@@ -637,11 +650,66 @@ fun SpellChangeDialog(onDissmiss: () -> Unit, character: Character) {
     }
 }
 
-
 @Composable
 fun DetailItem(label: String, value: String) {
     Row {
         Text("$label: ", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
         Text(value, style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+@Composable
+fun FeaturesSection(char: Character, dndClass: DndClass) {
+    val activeFeatures = remember(char, dndClass) {
+        val baseFeatures = dndClass.baseFeatures.filter { it.levelRequired <= char.level }
+        val subclass = char.subclassIndex?.let { index ->
+            ClassRegistry.getSubclasses(char.classIndex).find {
+                it.subclassName.lowercase().replace(" ", "-") == index
+            }
+        }
+        val subclassFeatures = subclass?.features?.filter { it.levelRequired <= char.level } ?: emptyList()
+        (baseFeatures + subclassFeatures).sortedBy { it.levelRequired }
+    }
+
+    if (activeFeatures.isNotEmpty()) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                "Class & Subclass Features",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.secondary
+            )
+            activeFeatures.forEach { feature ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                feature.name,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                "Level ${feature.levelRequired}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            feature.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
     }
 }

@@ -13,6 +13,7 @@ import com.utad.tfg.model.Ability
 import com.utad.tfg.model.DndRace
 import com.utad.tfg.model.RaceRegistry
 import com.utad.tfg.model.classes.ClassRegistry
+import com.utad.tfg.model.classes.ClassResource
 import com.utad.tfg.model.classes.Subclass
 import com.utad.tfg.remote.ArmorClass
 import com.utad.tfg.model.classes.Class as DndClass
@@ -352,15 +353,28 @@ class MainViewModel @Inject constructor(
 
     /**
      * Returns the highest spell level with slots > 0 for a given class at a given level.
+     * Checks both regular spellSlots and LevelledSlots (e.g., Warlock Pact Magic).
      * Returns 0 if the class has no spell slots at that level.
      */
     fun getMaxSpellLevelForClass(classIndex: String, level: Int): Int {
         val dndClass = ClassRegistry.createClass(classIndex, level) ?: return 0
+
+        // Check regular spell slots
         val slots = dndClass.spellSlots.getOrElse(level) { emptyList() }
-        // slots is indexed 0-based where index 0 = 1st-level slots
+        var maxFromSlots = 0
         for (i in slots.indices.reversed()) {
-            if (slots[i] > 0) return i + 1
+            if (slots[i] > 0) { maxFromSlots = i + 1; break }
         }
-        return 0
+
+        // Check LevelledSlots in uniqueResources (e.g., Warlock Pact Magic)
+        var maxFromPact = 0
+        dndClass.uniqueResources.forEach { resource ->
+            if (resource is ClassResource.LevelledSlots) {
+                val pactLevel = resource.level.getOrElse(level) { 0 }
+                if (pactLevel > maxFromPact) maxFromPact = pactLevel
+            }
+        }
+
+        return maxOf(maxFromSlots, maxFromPact)
     }
 }

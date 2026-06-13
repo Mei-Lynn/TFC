@@ -46,6 +46,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.utad.tfg.local.entities.Character
 import com.utad.tfg.model.CharState
+import androidx.compose.ui.res.stringResource
+import com.utad.tfg.R
 
 @Composable
 fun CharSelectScreen(onAddCharacter: () -> Unit, onCharacterClick: () -> Unit) {
@@ -179,7 +181,7 @@ fun CharacterCard(
 @Composable
 fun CharSelectTopbar() {
     TopAppBar(
-        title = { Text("Characters") },
+        title = { Text(stringResource(R.string.characters)) },
         scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     )
 }
@@ -190,7 +192,7 @@ fun AddCharacterButton(onClick: () -> Unit) {
         onClick = onClick,
         shape = CircleShape
     ) {
-        Icon(Icons.Default.Add, contentDescription = "Add character")
+        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_character))
     }
 }
 
@@ -200,6 +202,6 @@ fun RemoveCharacterButton(onClick: () -> Unit) {
         onClick = onClick,
         shape = CircleShape
     ) {
-        Icon(Icons.Default.Delete, contentDescription = "Remove character")
+        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.remove_character))
     }
 }

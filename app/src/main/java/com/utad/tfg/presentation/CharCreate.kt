@@ -35,6 +35,8 @@ import com.utad.tfg.local.entities.Character
 import com.utad.tfg.local.entities.SpellEntity
 import com.utad.tfg.model.classes.barbarian.Barbarian
 import com.utad.tfg.ui.theme.TFGTheme
+import androidx.compose.ui.res.stringResource
+import com.utad.tfg.R
 
 @Composable
 fun CharCreateScreen(
@@ -106,19 +108,19 @@ fun CharCreateContent(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Character Creation", style = MaterialTheme.typography.headlineMedium)
+        Text(stringResource(R.string.character_creation), style = MaterialTheme.typography.headlineMedium)
 
         // Nombre
         OutlinedTextField(
             value = name,
             onValueChange = { name = it },
-            label = { Text("Character Name") },
+            label = { Text(stringResource(R.string.character_name)) },
             modifier = Modifier.fillMaxWidth()
         )
 
         // Raza
         DropdownSelector(
-            label = "Race",
+            label = stringResource(R.string.race),
             options = races,
             selectedOption = selectedRace,
             optionName = { it.raceName },
@@ -132,7 +134,7 @@ fun CharCreateContent(
         // Subraza
         if (subraces.isNotEmpty()) {
             DropdownSelector(
-                label = "Subrace",
+                label = stringResource(R.string.subrace),
                 options = subraces,
                 selectedOption = selectedSubrace,
                 optionName = { it.subraceName ?: it.raceName },
@@ -142,7 +144,7 @@ fun CharCreateContent(
 
         // Clase
         DropdownSelector(
-            label = "Class",
+            label = stringResource(R.string.class_name),
             options = classes,
             selectedOption = selectedClass,
             optionName = { it.className },
@@ -158,7 +160,7 @@ fun CharCreateContent(
         // Subclase
         if (subclasses.isNotEmpty() && selectedClass?.subclassProgression?.minOrNull() == 1) {
             DropdownSelector(
-                label = "Subclass",
+                label = stringResource(R.string.subclass),
                 options = subclasses,
                 selectedOption = selectedSubclass,
                 optionName = { it.subclassName },
@@ -167,10 +169,10 @@ fun CharCreateContent(
         }
 
         // Equipamiento
-        Text("Equipment", style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.equipment), style = MaterialTheme.typography.titleLarge)
         
         DropdownSelector(
-            label = "Main Hand",
+            label = stringResource(R.string.main_hand),
             options = EquipmentRegistry.weapons,
             selectedOption = selectedMainHand,
             optionName = { it.weaponName },
@@ -185,7 +187,7 @@ fun CharCreateContent(
             }
 
             DropdownSelector(
-                label = "Off Hand",
+                label = stringResource(R.string.off_hand),
                 options = offHandOptions,
                 selectedOption = selectedOffHand,
                 optionName = {
@@ -200,7 +202,7 @@ fun CharCreateContent(
         }
 
         DropdownSelector(
-            label = "Armor",
+            label = stringResource(R.string.armor),
             options = EquipmentRegistry.armors.filter { armor -> armor.armorType != ArmorType.Shields },
             selectedOption = selectedArmor,
             optionName = { it.armorName },
@@ -208,7 +210,7 @@ fun CharCreateContent(
         )
 
         //Distribución de puntos de habilidad
-        Text("Ability Scores (Points: $remainingPoints/$totalPoints)", style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.ability_scores_points, remainingPoints, totalPoints), style = MaterialTheme.typography.titleLarge)
 
         //Indicadores de +1 y +2
         Row(
@@ -238,14 +240,14 @@ fun CharCreateContent(
             )
         }
 
-        Text("Prepared spells", style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.prepared_spells), style = MaterialTheme.typography.titleLarge)
         if (selectedClass != null && filteredSpells.isNotEmpty()) {
             val spellsByLevel = filteredSpells.groupBy { it.level }
 
             val maxCantrips = selectedClass!!.cantrips[1]
 
             SpellSelector(
-                "Cantrips",
+                "Cantrips (Pick $maxCantrips)",
                 maxCantrips,
                 spellsByLevel[0] ?: emptyList(),
                 chosenCantrips
@@ -274,7 +276,7 @@ fun CharCreateContent(
             ))
 
             SpellSelector(
-                "Level 1 Spells",
+                "Level 1 Spells (Pick $maxSpells)",
                 maxSpells,
                 spellsByLevel[1] ?: emptyList(),
                 chosenSpells
@@ -286,9 +288,9 @@ fun CharCreateContent(
                 }
             }
         } else if (selectedClass != null) {
-            Text("This class doesn't have any spells available.", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.no_spells_available), style = MaterialTheme.typography.bodyMedium)
         } else {
-            Text("Selection for these will be based on Class choices above.", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.spells_selection_info), style = MaterialTheme.typography.bodyMedium)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -319,7 +321,7 @@ fun CharCreateContent(
             modifier = Modifier.fillMaxWidth(),
             enabled = name.isNotBlank() && selectedRace != null && selectedClass != null && remainingPoints == 0 && modPlus1 != null && modPlus2 != null
         ) {
-            Text("Create Character")
+            Text(stringResource(R.string.create_character))
         }
     }
 }
@@ -387,7 +389,7 @@ fun AbilityScoreRow(
         Text(ability, modifier = Modifier.width(60.dp), fontWeight = FontWeight.Bold)
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onDecrease, enabled = canDecrease) {
-                Icon(Icons.Default.Remove, contentDescription = "Decrease")
+                Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.decrease))
             }
 
             Text("${score + if (modPlus1) 1 else 0 + if (modPlus2) 2 else 0}", modifier = Modifier
@@ -397,7 +399,7 @@ fun AbilityScoreRow(
             Text("(${Ability.calculateModifier(score)})")
 
             IconButton(onClick = onIncrease, enabled = canIncrease) {
-                Icon(Icons.Default.Add, contentDescription = "Increase")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.increase))
             }
         }
 
@@ -416,8 +418,11 @@ fun SpellSelector(
     maxSelections: Int,
     availableSpells: List<SpellEntity>,
     selectedSpells: Collection<SpellEntity>,
-    onToggleSpell: (SpellEntity) -> Unit
+    allowSwaps : Boolean = true,
+    onToggleSpell: (SpellEntity) -> Unit,
 ) {
+    val originalSelection = remember { selectedSpells.toList() }
+
     Column {
         Text(title, style = MaterialTheme.typography.titleSmall)
         FlowRow(
@@ -429,13 +434,16 @@ fun SpellSelector(
                 FilterChip(
                     selected = isSelected,
                     onClick = {
-                        if (isSelected || selectedSpells.size < maxSelections) {
-                            onToggleSpell(spell)
-                        }
+                        if (allowSwaps) {
+                            if (selectedSpells.size < maxSelections || isSelected)
+                                onToggleSpell(spell)
+                        } else if (!originalSelection.contains(spell))
+                            if (selectedSpells.size < maxSelections || isSelected)
+                                onToggleSpell(spell)
                     },
                     label = { Text(spell.name) },
                     leadingIcon = if (isSelected) {
-                        { Icon(Icons.Default.Check, contentDescription = "Spell is selected", modifier = Modifier.size(18.dp)) }
+                        { Icon(Icons.Default.Check, contentDescription = stringResource(R.string.spell_selected), modifier = Modifier.size(18.dp)) }
                     } else null
                 )
             }

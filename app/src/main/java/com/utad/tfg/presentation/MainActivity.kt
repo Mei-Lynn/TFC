@@ -44,9 +44,9 @@ fun MainNavigation() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    val items = listOf("Characters", "Campaigns", "Bestiary")
-    val routes = listOf("charSelect", "campaigns", "bestiary")
-    val icons = listOf(Icons.Default.Person, Icons.Default.Home, Icons.AutoMirrored.Filled.List)
+    val items = listOf("Characters", /*"Campaigns",*/ "Bestiary")
+    val routes = listOf("charSelect", /*"campaigns",*/ "bestiary")
+    val icons = listOf(Icons.Default.Person, /*Icons.Default.Home,*/ Icons.AutoMirrored.Filled.List)
 
     Scaffold(
         bottomBar = {

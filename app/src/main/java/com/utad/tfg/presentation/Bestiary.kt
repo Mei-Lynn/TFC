@@ -29,6 +29,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
+import com.utad.tfg.R
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
@@ -181,7 +183,7 @@ fun OnlineMonsterCard(
             ) {
                 Icon(
                     imageVector = if (isDownloaded) Icons.Default.Delete else Icons.Default.Download,
-                    contentDescription = "Download/Delete"
+                    contentDescription = stringResource(R.string.download_delete)
                 )
             }
         }
@@ -213,7 +215,7 @@ fun MonsterInfoDialog(onDismiss: () -> Unit, index: String) {
                 ) {
                     CircularProgressIndicator()
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Loading monster info...")
+                    Text(stringResource(R.string.loading_monster_info))
                 }
             } else {
                 val m = monster!!

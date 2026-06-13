@@ -26,8 +26,9 @@ import com.utad.tfg.model.classes.ClassFeature
 import com.utad.tfg.model.classes.ClassRegistry
 import com.utad.tfg.model.classes.Subclass
 import com.utad.tfg.model.classes.Class as DndClass
+import androidx.compose.ui.res.stringResource
+import com.utad.tfg.R
 
-// ─── Known-spell caster indices ───
 private val KNOWN_CASTERS = setOf("bard", "sorcerer", "warlock", "ranger")
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -104,10 +105,10 @@ fun LevelUpScreen(onComplete: () -> Unit = {}) {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Level Up — ${char.name}") },
+                    title = { Text(stringResource(R.string.level_up_title, char.name)) },
                     navigationIcon = {
                         IconButton(onClick = onComplete) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Cancel")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cancel))
                         }
                     }
                 )
@@ -218,8 +219,6 @@ fun LevelUpScreen(onComplete: () -> Unit = {}) {
     }
 }
 
-// ─── Step Enum ───
-
 private enum class LevelUpStep(val label: String) {
     HP("HP"),
     ASI("ASI"),
@@ -227,8 +226,6 @@ private enum class LevelUpStep(val label: String) {
     SPELLS("Spells"),
     SUMMARY("Summary")
 }
-
-// ─── Step Indicator ───
 
 @Composable
 private fun StepIndicator(steps: List<LevelUpStep>, currentIndex: Int) {
@@ -282,8 +279,6 @@ private fun StepIndicator(steps: List<LevelUpStep>, currentIndex: Int) {
     }
 }
 
-// ─── Bottom Navigation Bar ───
-
 @Composable
 private fun LevelUpBottomBar(
     currentStepIndex: Int,
@@ -305,7 +300,7 @@ private fun LevelUpBottomBar(
                 OutlinedButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Back")
+                    Text(stringResource(R.string.back))
                 }
             } else {
                 Spacer(modifier = Modifier.width(1.dp))
@@ -315,11 +310,11 @@ private fun LevelUpBottomBar(
                 Button(onClick = onConfirm) {
                     Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Confirm Level Up")
+                    Text(stringResource(R.string.confirm_level_up))
                 }
             } else {
                 Button(onClick = onNext, enabled = canAdvance) {
-                    Text("Next")
+                    Text(stringResource(R.string.next))
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
                 }
@@ -327,10 +322,6 @@ private fun LevelUpBottomBar(
         }
     }
 }
-
-// ══════════════════════════════════════════════════════════════
-//  STEP 1 — HP Gain
-// ══════════════════════════════════════════════════════════════
 
 @Composable
 private fun HpGainStep(
@@ -353,7 +344,7 @@ private fun HpGainStep(
                 fontWeight = FontWeight.Bold
             )
             HorizontalDivider()
-            Text("Hit Die: d${dndClass.hitDie}", style = MaterialTheme.typography.bodyLarge)
+            Text(stringResource(R.string.hit_die, dndClass.hitDie), style = MaterialTheme.typography.bodyLarge)
             Text(
                 "Average roll: ${dndClass.hitDie / 2 + 1}",
                 style = MaterialTheme.typography.bodyMedium
@@ -406,10 +397,6 @@ private fun HpGainStep(
         }
     }
 }
-
-// ══════════════════════════════════════════════════════════════
-//  STEP 2 — ASI
-// ══════════════════════════════════════════════════════════════
 
 @Composable
 private fun AsiStep(
@@ -533,10 +520,6 @@ private fun AsiAbilityRow(
     }
 }
 
-// ══════════════════════════════════════════════════════════════
-//  STEP 3 — Subclass Selection
-// ══════════════════════════════════════════════════════════════
-
 @Composable
 private fun SubclassStep(
     classIndex: String,
@@ -607,10 +590,6 @@ private fun SubclassStep(
     }
 }
 
-// ══════════════════════════════════════════════════════════════
-//  STEP 4 — Spells (Cantrips, New Spells, Swap)
-// ══════════════════════════════════════════════════════════════
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SpellsStep(
@@ -641,7 +620,6 @@ private fun SpellsStep(
         fontWeight = FontWeight.Bold
     )
 
-    // ─── 4a: New Cantrips ───
     if (gainsCantrips) {
         val availableCantrips = (spellsByLevel[0] ?: emptyList())
 
@@ -657,7 +635,7 @@ private fun SpellsStep(
         )
 
         SpellSelector(
-            title = "Cantrips",
+            title = stringResource(R.string.cantrips),
             maxSelections = newCantripCount,
             availableSpells = availableCantrips,
             selectedSpells = availableCantrips.filter { currentCantrips.contains(it.index) },
@@ -673,7 +651,6 @@ private fun SpellsStep(
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
     }
 
-    // ─── 4b: New Spells (known-casters) ───
     if (gainsSpells) {
         Text(
             "Learn New Spells",
@@ -689,10 +666,11 @@ private fun SpellsStep(
             val availableForLevel = (spellsByLevel[lvl] ?: emptyList())
             if (availableForLevel.isNotEmpty()) {
                 SpellSelector(
-                    title = "Level $lvl Spells",
+                    title = stringResource(R.string.level_x_spells, lvl),
                     maxSelections = totalSpellsAllowed,
                     availableSpells = availableForLevel,
                     selectedSpells = availableForLevel.filter { currentSpells.contains(it.index) },
+                    allowSwaps = !isKnownCaster,
                     onToggleSpell = { spell ->
                         if (currentSpells.contains(spell.index)) {
                             currentSpells.remove(spell.index)
@@ -707,7 +685,6 @@ private fun SpellsStep(
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
     }
 
-    // ─── 4c: Spell Swap (known-casters only) ───
     if (isKnownCaster) {
         Text(
             "Spell Swap",
@@ -742,7 +719,7 @@ private fun SpellsStep(
                     .filter { !currentSpells.contains(it.index) && it.index != spellToSwap }
                 if (replacements.isNotEmpty()) {
                     SpellSelector(
-                        title = "Level $lvl",
+                        title = stringResource(R.string.level_x, lvl),
                         maxSelections = 1,
                         availableSpells = replacements,
                         selectedSpells = emptyList(),
@@ -754,7 +731,7 @@ private fun SpellsStep(
             }
 
             TextButton(onClick = onCancelSwap) {
-                Text("Cancel Swap")
+                Text(stringResource(R.string.cancel_swap))
             }
         } else {
             Text(
@@ -775,7 +752,7 @@ private fun SpellsStep(
                         onClick = { onInitiateSwap(spellIndex) },
                         label = { Text(spell?.name ?: spellIndex) },
                         leadingIcon = {
-                            Icon(Icons.Default.SwapHoriz, contentDescription = "Swap", modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.SwapHoriz, contentDescription = stringResource(R.string.swap), modifier = Modifier.size(18.dp))
                         }
                     )
                 }
@@ -783,10 +760,6 @@ private fun SpellsStep(
         }
     }
 }
-
-// ══════════════════════════════════════════════════════════════
-//  STEP 5 — Summary
-// ══════════════════════════════════════════════════════════════
 
 @Composable
 private fun SummaryStep(
@@ -847,7 +820,6 @@ private fun SummaryStep(
         }
     }
 
-    // ─── Newly Unlocked Features ───
     val newBaseFeatures = dndClass.baseFeatures.filter { it.levelRequired == newLevel }
     val subclass = selectedSubclass ?: char.subclassIndex?.let { index ->
         ClassRegistry.getSubclasses(char.classIndex).find {
