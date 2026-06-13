@@ -24,7 +24,8 @@ interface Class {
     //Ej.: Spells[2][3] -> Número de hechizos de nivel 3 que tiene la clase al nivel 2.
     
     val uniqueResources: List<ClassResource>
-    
+
+    val asiLevels : List<Int>
     val baseFeatures: List<ClassFeature>
     var selectedSubclass: Subclass?
     

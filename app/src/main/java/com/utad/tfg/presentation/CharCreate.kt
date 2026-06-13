@@ -31,7 +31,9 @@ import com.utad.tfg.model.equipment.WeaponProperty
 import com.utad.tfg.model.classes.Class as DndClass
 
 import androidx.compose.ui.tooling.preview.Preview
+import com.utad.tfg.local.entities.Character
 import com.utad.tfg.local.entities.SpellEntity
+import com.utad.tfg.model.classes.barbarian.Barbarian
 import com.utad.tfg.ui.theme.TFGTheme
 
 @Composable
@@ -237,7 +239,7 @@ fun CharCreateContent(
         }
 
         Text("Prepared spells", style = MaterialTheme.typography.titleLarge)
-        if (selectedClass != null && filteredSpells.isNotEmpty() && selectedClass!!.spells[1].isNotEmpty()) {
+        if (selectedClass != null && filteredSpells.isNotEmpty()) {
             val spellsByLevel = filteredSpells.groupBy { it.level }
 
             val maxCantrips = selectedClass!!.cantrips[1]
@@ -255,7 +257,21 @@ fun CharCreateContent(
                 }
             }
 
-            val maxSpells = selectedClass!!.spells[1][1]
+            val maxSpells = selectedClass!!.getPreparedSpellsLimit(Character(
+                level = 1,
+                strength = abilityScores[Ability.Strength] ?: 10,
+                intelligence = abilityScores[Ability.Intelligence] ?: 10,
+                wisdom = abilityScores[Ability.Wisdom] ?: 10,
+                charisma = abilityScores[Ability.Charisma] ?: 10,
+                dexterity = abilityScores[Ability.Dexterity] ?: 10,
+                constitution = abilityScores[Ability.Constitution] ?: 10,
+                name = "",
+                raceIndex = "",
+                classIndex = "",
+                maxHp = 999,
+                currentHp = 999,
+                armorClass = 999,
+            ))
 
             SpellSelector(
                 "Level 1 Spells",
@@ -403,7 +419,7 @@ fun SpellSelector(
     onToggleSpell: (SpellEntity) -> Unit
 ) {
     Column {
-        Text("$title (${selectedSpells.size}/$maxSelections)", style = MaterialTheme.typography.titleSmall)
+        Text(title, style = MaterialTheme.typography.titleSmall)
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -454,8 +470,8 @@ fun getNextPointCost(currentScore: Int): Int {
 fun CharCreatePreview() {
     TFGTheme {
         CharCreateContent(
-            races = listOf(com.utad.tfg.model.DndRace.Human.Standard),
-            classes = listOf(com.utad.tfg.model.classes.barbarian.Barbarian()),
+            races = listOf(DndRace.Human.Standard),
+            classes = listOf(Barbarian()),
             subraces = emptyList(),
             subclasses = emptyList(),
             filteredSpells = emptyList(),

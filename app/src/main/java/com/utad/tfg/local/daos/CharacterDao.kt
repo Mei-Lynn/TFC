@@ -20,6 +20,9 @@ interface CharacterDao {
     @Query("SELECT * FROM characters")
     fun getAllCharacters(): Flow<List<Character>>
 
+    @Query("DELETE FROM characters WHERE id IN (:ids)")
+    suspend fun deleteCharactersByID(ids: List<Long>)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCharacter(character: Character)
 

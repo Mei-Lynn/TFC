@@ -31,6 +31,7 @@ class Warlock(override var level: Int = 1) : Class {
             level = listOf(0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5)
         )
     )
+    override val asiLevels = listOf(4, 8, 12, 16, 19)
 
     override val baseFeatures: List<ClassFeature> = listOf(
         ClassFeature(

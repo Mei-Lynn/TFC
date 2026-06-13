@@ -47,6 +47,8 @@ class Ranger(override var level: Int = 1) : Class {
 
     override val uniqueResources: List<ClassResource> = emptyList()
 
+    override val asiLevels = listOf(4, 8, 12, 16, 19)
+
     override val baseFeatures: List<ClassFeature> = listOf(
         ClassFeature(
             name = "Favored Enemy",

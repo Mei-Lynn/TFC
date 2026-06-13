@@ -40,6 +40,8 @@ class Monk(override var level: Int = 1) : Class {
         )
     )
 
+    override val asiLevels = listOf(4, 8, 12, 16, 19)
+
     override val baseFeatures: List<ClassFeature> = listOf(
         ClassFeature(
             name = "Unarmored Defense",

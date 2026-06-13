@@ -1,6 +1,5 @@
 package com.utad.tfg.model.classes
 
-import com.utad.tfg.model.classes.artificer.*
 import com.utad.tfg.model.classes.barbarian.*
 import com.utad.tfg.model.classes.bard.*
 import com.utad.tfg.model.classes.cleric.*
@@ -16,7 +15,6 @@ import com.utad.tfg.model.classes.wizard.*
 
 object ClassRegistry {
     val classes: List<Class> = listOf(
-        Artificer(),
         Barbarian(),
         Bard(),
         Cleric(),
@@ -33,7 +31,6 @@ object ClassRegistry {
 
     fun getSubclasses(classIndex: String): List<Subclass> {
         return when (classIndex) {
-            "artificer" -> listOf(Alchemist())
             "barbarian" -> listOf(Berserker(), TotemWarrior())
             "bard" -> listOf(Lore(), Valor())
             "cleric" -> listOf(
@@ -69,7 +66,6 @@ object ClassRegistry {
 
     fun createClass(classIndex: String, level: Int = 1): Class? {
         return when (classIndex) {
-            "artificer" -> Artificer(level)
             "barbarian" -> Barbarian(level)
             "bard" -> Bard(level)
             "cleric" -> Cleric(level)

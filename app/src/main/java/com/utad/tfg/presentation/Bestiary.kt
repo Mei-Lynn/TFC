@@ -76,7 +76,8 @@ fun BestiaryScreen() {
         )
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+        Spacer(modifier = Modifier.height(8.dp))
         CustomSearchBar(
             placeholder = "Search monsters...",
             onSearchTextChanged = { searchString = it }
@@ -311,7 +312,7 @@ fun CustomSearchBar(
             onSearchTextChanged(it)
         },
         placeholder = { Text(placeholder) },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(0.9f),
         shape = RoundedCornerShape(15.dp),
         singleLine = true
     )

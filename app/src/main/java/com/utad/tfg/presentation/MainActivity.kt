@@ -83,7 +83,11 @@ fun MainNavigation() {
             composable("charCreate") { CharCreateScreen(onCharacterCreated = { navController.navigate("charSelect") }) }
             composable("campaigns") { Campaigns() }
             composable("bestiary") { BestiaryScreen() }
-            composable("charDetails") { CharDetailsScreen(onBack = { navController.popBackStack() }) }
+            composable("charDetails") { CharDetailsScreen(
+                onBack = { navController.popBackStack() },
+                onLevelUp = { navController.navigate("levelUp") }
+            ) }
+            composable("levelUp") { LevelUpScreen(onComplete = { navController.popBackStack() }) }
         }
     }
 }

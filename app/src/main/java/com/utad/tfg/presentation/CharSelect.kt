@@ -57,7 +57,7 @@ fun CharSelectScreen(onAddCharacter: () -> Unit, onCharacterClick: () -> Unit) {
     Scaffold(
         topBar = { CharSelectTopbar() },
         floatingActionButton = { 
-            if (selectMode) RemoveCharacterButton() 
+            if (selectMode) RemoveCharacterButton(onClick = {vm.deleteCharactersByID(selectedIDs); selectedIDs.clear(); selectMode = false})
             else AddCharacterButton(onClick = onAddCharacter) 
         },
     ) { paddingValues ->
@@ -195,9 +195,9 @@ fun AddCharacterButton(onClick: () -> Unit) {
 }
 
 @Composable
-fun RemoveCharacterButton() {
+fun RemoveCharacterButton(onClick: () -> Unit) {
     FloatingActionButton(
-        onClick = { /* TODO */ },
+        onClick = onClick,
         shape = CircleShape
     ) {
         Icon(Icons.Default.Delete, contentDescription = "Remove character")

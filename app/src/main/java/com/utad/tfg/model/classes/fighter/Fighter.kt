@@ -23,6 +23,8 @@ class Fighter(override var level: Int = 1) : Class {
 
     override val uniqueResources: List<ClassResource> = emptyList()
 
+    override val asiLevels = listOf(4, 6, 8, 12, 14, 16, 19)
+
     override val baseFeatures: List<ClassFeature> = listOf(
         ClassFeature(
             name = "Second Wind",

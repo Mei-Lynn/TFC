@@ -1,6 +1,7 @@
 package com.utad.tfg.presentation
 
 import android.util.Log
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.utad.tfg.local.daos.CharacterDao
@@ -32,6 +33,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Locale
 import javax.inject.Inject
+import kotlin.random.Random
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -173,6 +175,12 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun deleteCharactersByID(selectedIDs: SnapshotStateList<Long>) {
+        viewModelScope.launch {
+            characterDao.deleteCharactersByID(selectedIDs)
+        }
+    }
+
     private val _selectedCharacter = MutableStateFlow<Character?>(null)
     val selectedCharacter = _selectedCharacter.asStateFlow()
 
@@ -309,5 +317,50 @@ class MainViewModel @Inject constructor(
                 e.printStackTrace()
             }
         }
+    }
+
+    //========================= Level Up ==========================
+
+    fun levelUp(
+        character: Character,
+        hpGain: Int,
+        abilityIncreases: Map<Ability, Int> = emptyMap(),
+        newSubclassIndex: String? = null,
+        newCantrips: List<String>,
+        newPreparedSpells: List<String>
+    ) {
+        viewModelScope.launch {
+            val updatedChar = character.copy(
+                level = character.level + 1,
+                maxHp = character.maxHp + hpGain,
+                currentHp = character.currentHp + hpGain,
+                strength = character.strength + (abilityIncreases[Ability.Strength] ?: 0),
+                dexterity = character.dexterity + (abilityIncreases[Ability.Dexterity] ?: 0),
+                constitution = character.constitution + (abilityIncreases[Ability.Constitution] ?: 0),
+                intelligence = character.intelligence + (abilityIncreases[Ability.Intelligence] ?: 0),
+                wisdom = character.wisdom + (abilityIncreases[Ability.Wisdom] ?: 0),
+                charisma = character.charisma + (abilityIncreases[Ability.Charisma] ?: 0),
+                subclassIndex = newSubclassIndex ?: character.subclassIndex,
+                cantrips = newCantrips,
+                preparedSpells = newPreparedSpells
+            )
+            characterDao.updateCharacter(updatedChar)
+            _selectedCharacter.value = updatedChar
+            loadSelectedCharacterSpells()
+        }
+    }
+
+    /**
+     * Returns the highest spell level with slots > 0 for a given class at a given level.
+     * Returns 0 if the class has no spell slots at that level.
+     */
+    fun getMaxSpellLevelForClass(classIndex: String, level: Int): Int {
+        val dndClass = ClassRegistry.createClass(classIndex, level) ?: return 0
+        val slots = dndClass.spellSlots.getOrElse(level) { emptyList() }
+        // slots is indexed 0-based where index 0 = 1st-level slots
+        for (i in slots.indices.reversed()) {
+            if (slots[i] > 0) return i + 1
+        }
+        return 0
     }
 }

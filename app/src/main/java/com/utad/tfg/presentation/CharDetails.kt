@@ -43,7 +43,8 @@ import com.utad.tfg.remote.DndSpellResponse
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CharDetailsScreen(
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    onLevelUp: () -> Unit = {}
 ) {
     val vm = hiltViewModel<MainViewModel>(LocalContext.current as ComponentActivity)
     val character by vm.selectedCharacter.collectAsStateWithLifecycle()
@@ -159,13 +160,15 @@ fun CharDetailsScreen(
                     }
                 }
 
-                OutlinedButton(
-                    onClick = { /* TODO: Unimplemented */ },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.Upgrade, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Level Up")
+                if (char.level < 20) {
+                    OutlinedButton(
+                        onClick = onLevelUp,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Upgrade, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Level Up")
+                    }
                 }
 
             }
@@ -194,7 +197,7 @@ fun HeaderSection(char: Character) {
 @Composable
 fun StatBox(label: String, value: String) {
     Card(
-        modifier = Modifier.width(80.dp),
+        modifier = Modifier.width(120.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(
@@ -569,11 +572,13 @@ fun SpellChangeDialog(onDissmiss: () -> Unit, character: Character) {
                             )
                         }
 
-                        val maxSpells = dndClass.spells[character.level].getOrNull(1) ?: 0
+                        val maxSpells = dndClass.getPreparedSpellsLimit(character)
+                        val availableSpells by remember { mutableIntStateOf(maxSpells - currentSpells.size) }
+
                         if (maxSpells > 0) {
                             SpellSelector(
                                 title = "Level 1 Spells",
-                                maxSelections = maxSpells,
+                                maxSelections = availableSpells,
                                 availableSpells = spellsByLevel[1] ?: emptyList(),
                                 selectedSpells = currentSpells,
                                 onToggleSpell = { spell ->
@@ -592,7 +597,7 @@ fun SpellChangeDialog(onDissmiss: () -> Unit, character: Character) {
                             if (availableForLvl.isNotEmpty()) {
                                 SpellSelector(
                                     title = "Level $lvl Spells",
-                                    maxSelections = 99, // Prepared spell limits are complex in D&D, often total level based
+                                    maxSelections = availableSpells,
                                     availableSpells = availableForLvl,
                                     selectedSpells = currentSpells,
                                     onToggleSpell = { spell ->
