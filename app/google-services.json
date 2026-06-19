@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "614903700878",
+    "project_id": "api-tfc-fd09a",
+    "storage_bucket": "api-tfc-fd09a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:614903700878:android:6352fde4a8ad4a0c5958df",
+        "android_client_info": {
+          "package_name": "com.utad.tfg"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "614903700878-4jghtmj1n4iirsdvd12afgl9k4lm9m76.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBM5yD1zUU0bhtB-O9Srepz522Y1dFefDc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "614903700878-4jghtmj1n4iirsdvd12afgl9k4lm9m76.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

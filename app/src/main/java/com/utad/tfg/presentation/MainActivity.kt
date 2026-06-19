@@ -19,6 +19,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -34,9 +36,21 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             TFGTheme {
-                MainNavigation()
+                RootScreen()
             }
         }
+    }
+}
+
+@Composable
+fun RootScreen() {
+    val authViewModel: AuthViewModel = hiltViewModel()
+    val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
+
+    if (currentUser == null) {
+        LoginScreen(authViewModel = authViewModel)
+    } else {
+        MainNavigation()
     }
 }
 
