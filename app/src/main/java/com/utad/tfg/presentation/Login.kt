@@ -49,6 +49,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -62,12 +63,7 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
 
-// ──────────────────────────────────────────────────────────────
-// TODO: Paste your Web Client ID from Firebase Console here.
-//       Firebase Console → Authentication → Sign-in method →
-//       Google → Web SDK configuration → Web client ID
-// ──────────────────────────────────────────────────────────────
-private const val WEB_CLIENT_ID = "YOUR_WEB_CLIENT_ID_HERE"
+private const val WEB_CLIENT_ID = "614903700878-4jghtmj1n4iirsdvd12afgl9k4lm9m76.apps.googleusercontent.com"
 
 @Composable
 fun LoginScreen(authViewModel: AuthViewModel) {
@@ -129,6 +125,7 @@ fun LoginScreen(authViewModel: AuthViewModel) {
                 leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.None,
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next
                 ),
@@ -160,6 +157,7 @@ fun LoginScreen(authViewModel: AuthViewModel) {
                 visualTransformation = if (passwordVisible) VisualTransformation.None
                                        else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.None,
                     keyboardType = KeyboardType.Password,
                     imeAction = ImeAction.Done
                 ),

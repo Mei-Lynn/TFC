@@ -44,7 +44,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun RootScreen() {
-    val authViewModel: AuthViewModel = hiltViewModel()
+    val authViewModel = hiltViewModel<AuthViewModel>()
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
 
     if (currentUser == null) {

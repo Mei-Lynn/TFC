@@ -18,8 +18,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -52,12 +55,13 @@ import com.utad.tfg.R
 @Composable
 fun CharSelectScreen(onAddCharacter: () -> Unit, onCharacterClick: () -> Unit) {
     val vm = hiltViewModel<MainViewModel>(LocalContext.current as ComponentActivity)
+    val auth = hiltViewModel<AuthViewModel>(LocalContext.current as ComponentActivity)
     var selectMode by remember { mutableStateOf(false) }
     val characters by vm.localCharacters.collectAsStateWithLifecycle()
     val selectedIDs = remember { mutableStateListOf<Long>() }
 
     Scaffold(
-        topBar = { CharSelectTopbar() },
+        topBar = { CharSelectTopbar { auth.signOut() } },
         floatingActionButton = { 
             if (selectMode) RemoveCharacterButton(onClick = {vm.deleteCharactersByID(selectedIDs, {selectedIDs.clear()}); selectMode = false})
             else AddCharacterButton(onClick = onAddCharacter) 
@@ -178,10 +182,13 @@ fun CharacterCard(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CharSelectTopbar() {
+fun CharSelectTopbar(onLogout: () -> Unit) {
     TopAppBar(
         title = { Text(stringResource(R.string.characters)) },
-        scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+        scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(),
+        actions = {
+            TextButton(onLogout) { Icon(Icons.AutoMirrored.Filled.Logout, "Logout icon")}
+        }
     )
 }
 
