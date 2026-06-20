@@ -3,6 +3,7 @@ package com.utad.tfg.presentation
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -48,6 +49,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -55,12 +58,11 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.utad.tfg.model.Ability
 import com.utad.tfg.local.entities.Enemy
-import com.utad.tfg.remote.DndMonsterResponse
+
 
 @Composable
 fun BestiaryScreen() {
     val vm = hiltViewModel<MainViewModel>(LocalContext.current as ComponentActivity)
-    val isOnline by vm.isNetworkAvailable.collectAsStateWithLifecycle()
     val monsters by vm.monsters.collectAsStateWithLifecycle()
     val localEnemies by vm.localEnemies.collectAsStateWithLifecycle()
     var searchString by remember { mutableStateOf("") }
@@ -68,8 +70,8 @@ fun BestiaryScreen() {
     var showDialog by remember { mutableStateOf(false) }
     var selectedIndex by remember { mutableStateOf("") }
 
-    LaunchedEffect(isOnline) {
-        if (isOnline) vm.fetchMonsters()
+    LaunchedEffect(Unit) {
+        vm.fetchMonsters()
     }
 
     if (showDialog) {
@@ -86,10 +88,25 @@ fun BestiaryScreen() {
             onSearchTextChanged = { searchString = it }
         )
 
-        if (isOnline) {
-            val filteredMonsters = monsters.filter {
-                it.name.contains(searchString, ignoreCase = true)
+        val filteredMonsters = monsters.filter {
+            it.name.contains(searchString, ignoreCase = true)
+        }
+
+        if (monsters.isEmpty() && localEnemies.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
             }
+        } else if (filteredMonsters.isEmpty() && monsters.isNotEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("No matches")
+            }
+        } else {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 modifier = Modifier.fillMaxWidth(),
@@ -101,33 +118,12 @@ fun BestiaryScreen() {
                         name = monster.name,
                         isDownloaded = isDownloaded,
                         onDownloadClick = { vm.downloadMonster(monster.index) },
-                        onDeleteClick = {vm.deleteSavedMonster(monster.index)},
+                        onDeleteClick = { vm.deleteSavedMonster(monster.index) },
                         onInfoClick = {
                             selectedIndex = it
                             showDialog = true
                         },
                         index = monster.index,
-                    )
-                }
-            }
-
-        } else {
-            val filteredLocal = localEnemies.filter {
-                it.name.contains(searchString, ignoreCase = true)
-            }
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(8.dp)
-            ) {
-                items(filteredLocal) { enemy ->
-                    OfflineMonsterCard(
-                        enemy = enemy,
-                        onInfoClick = {
-                            selectedIndex = it
-                            showDialog = true
-                        },
-                        onDeleteClick = {vm.deleteSavedMonster(enemy.index)}
                     )
                 }
             }
@@ -151,12 +147,32 @@ fun OfflineMonsterCard(enemy: Enemy, onInfoClick: (String) -> Unit, onDeleteClic
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                Modifier.fillMaxWidth(0.7f),
-                horizontalAlignment = Alignment.Start
+            Box(
+                modifier = Modifier.fillMaxWidth(0.7f),
+                contentAlignment = Alignment.CenterStart
             ) {
-                Text(text = enemy.name, style = MaterialTheme.typography.titleMedium)
-                Text(text = enemy.type, style = MaterialTheme.typography.bodySmall)
+                // Invisible text to reserve 3 lines of space
+                Text(
+                    text = "",
+                    style = MaterialTheme.typography.titleMedium,
+                    minLines = 3
+                )
+                Column(
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Text(
+                        text = enemy.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = enemy.type,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
             IconButton(
                 onClick = onDeleteClick,
@@ -192,11 +208,23 @@ fun OnlineMonsterCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = name,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f)
-            )
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                // Invisible text to reserve 3 lines of space
+                Text(
+                    text = "",
+                    style = MaterialTheme.typography.titleMedium,
+                    minLines = 3
+                )
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             IconButton(
                 onClick = if (isDownloaded) onDeleteClick else onDownloadClick,
             ) {
@@ -289,7 +317,7 @@ fun MonsterInfoDialog(onDismiss: () -> Unit, index: String) {
                                 text = action.desc,
                                 style = MaterialTheme.typography.bodySmall,
                                 maxLines = 3,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                         }

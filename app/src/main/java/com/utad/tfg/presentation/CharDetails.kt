@@ -39,7 +39,7 @@ import com.utad.tfg.model.equipment.Equipment
 import com.utad.tfg.model.equipment.EquipmentRegistry
 import com.utad.tfg.model.equipment.Weapon
 import com.utad.tfg.model.equipment.WeaponProperty
-import com.utad.tfg.remote.DndSpellResponse
+
 import androidx.compose.ui.res.stringResource
 import com.utad.tfg.R
 import androidx.compose.runtime.collectAsState
@@ -434,9 +434,8 @@ fun SpellsSection(spells: List<SpellEntity>, onSpellClick: (String) -> Unit) {
 fun SpellInfoDialog(onDismiss: () -> Unit, index: String) {
     val vm = hiltViewModel<MainViewModel>(LocalContext.current as ComponentActivity)
     val spell by vm.spellDetails.collectAsStateWithLifecycle()
-    val isOnline by vm.isNetworkAvailable.collectAsState()
 
-    LaunchedEffect(index, isOnline) {
+    LaunchedEffect(index) {
         vm.fetchSpellDetails(index)
     }
 
@@ -473,29 +472,31 @@ fun SpellInfoDialog(onDismiss: () -> Unit, index: String) {
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "${if (s.level == 0) "Cantrip" else "Level ${s.level}"} ${s.school.name}${if (s.ritual) " (Ritual)" else ""}",
+                        text = "${if (s.level == 0) "Cantrip" else "Level ${s.level}"} ${s.school ?: ""}${if (s.ritual) " (Ritual)" else ""}",
                         style = MaterialTheme.typography.bodyMedium,
                         fontStyle = FontStyle.Italic
                     )
 
                     HorizontalDivider()
 
-                    DetailItem("Casting Time", s.castingTime)
-                    DetailItem("Range", s.range)
-                    DetailItem("Components", s.components.joinToString(", "))
-                    if (s.material != null) {
-                        DetailItem("Material", s.material)
+                    s.castingTime?.let { DetailItem("Casting Time", it) }
+                    s.range?.let { DetailItem("Range", it) }
+                    s.components?.let { DetailItem("Components", it) }
+                    s.material?.let { DetailItem("Material", it) }
+                    s.duration?.let {
+                        DetailItem("Duration", it + (if (s.isConcentration) " (Concentration)" else ""))
                     }
-                    DetailItem("Duration", s.duration + (if (s.concentration) " (Concentration)" else ""))
 
                     HorizontalDivider()
 
-                    Text(text = s.desc.joinToString("\n\n"), style = MaterialTheme.typography.bodyMedium)
+                    s.description?.let {
+                        Text(text = it, style = MaterialTheme.typography.bodyMedium)
+                    }
 
-                    if (!s.higherLevel.isNullOrEmpty()) {
+                    if (!s.higherLevel.isNullOrBlank()) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(stringResource(R.string.at_higher_levels), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                        Text(text = s.higherLevel.joinToString("\n"), style = MaterialTheme.typography.bodySmall)
+                        Text(text = s.higherLevel, style = MaterialTheme.typography.bodySmall)
                     }
                     
                     Spacer(modifier = Modifier.height(16.dp))

@@ -16,5 +16,11 @@ data class SpellEntity(
     val castingTime: String? = null,
     val description: String? = null,
     val isConcentration: Boolean = false,
+    val school: String? = null,
+    val ritual: Boolean = false,
+    val components: String? = null,
+    val material: String? = null,
+    val duration: String? = null,
+    val higherLevel: String? = null,
     val isSynced: Boolean = false
 )

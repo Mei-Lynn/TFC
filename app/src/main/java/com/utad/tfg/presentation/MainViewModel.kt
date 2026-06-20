@@ -17,12 +17,10 @@ import com.utad.tfg.model.classes.ClassResource
 import com.utad.tfg.model.classes.Subclass
 import com.utad.tfg.remote.ArmorClass
 import com.utad.tfg.model.classes.Class as DndClass
-import com.utad.tfg.remote.DndApiService
 import com.utad.tfg.remote.DndMonsterResponse
-import com.utad.tfg.remote.DndSpellResponse
+import com.utad.tfg.remote.FirestoreRepository
 import com.utad.tfg.remote.JsonResource
 import com.utad.tfg.remote.MonsterSpeed
-import com.utad.tfg.remote.NetworkUtils
 import com.utad.tfg.remote.SpellRepository
 import com.utad.tfg.remote.toEnemy
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,19 +30,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.util.Locale
 import javax.inject.Inject
-import kotlin.random.Random
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    private val dndApiService: DndApiService,
-    private val networkUtils: NetworkUtils,
+    private val firestoreRepository: FirestoreRepository,
     private val enemyDao: EnemyDao,
     private val characterDao: CharacterDao,
     private val spellRepository: SpellRepository
 ) : ViewModel() {
-    val languageTag: String = Locale.getDefault().toLanguageTag()
     private val _races = MutableStateFlow<List<DndRace>>(emptyList())
     val races = _races.asStateFlow()
 
@@ -57,9 +51,6 @@ class MainViewModel @Inject constructor(
     private val _subclasses = MutableStateFlow<List<Subclass>>(emptyList())
     val subclasses = _subclasses.asStateFlow()
 
-    private val _spells = MutableStateFlow<List<JsonResource>>(emptyList())
-    val spells = _spells.asStateFlow()
-
     private val _monsters = MutableStateFlow<List<JsonResource>>(emptyList())
     val monsters = _monsters.asStateFlow()
 
@@ -70,16 +61,7 @@ class MainViewModel @Inject constructor(
     val localCharacters: StateFlow<List<Character>> = characterDao.getAllCharacters()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    /** Indica si hay conexión de red disponible. */
-    val isNetworkAvailable: StateFlow<Boolean> = networkUtils.observeNetworkStatus()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = networkUtils.isNetworkAvailable()
-        )
-
     init {
-        Log.d("VM", languageTag)
         _races.value = RaceRegistry.races
         _classes.value = ClassRegistry.classes
         fetchMonsters()
@@ -112,9 +94,11 @@ class MainViewModel @Inject constructor(
     fun downloadMonster(index: String) {
         viewModelScope.launch {
             try {
-                val details = dndApiService.getMonsterDetails(index, lang = languageTag)
-                val enemy = details.toEnemy()
-                enemyDao.insertEnemy(enemy)
+                val details = firestoreRepository.fetchCreatureByKey(index)
+                if (details != null) {
+                    val enemy = details.toEnemy()
+                    enemyDao.insertEnemy(enemy)
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -208,13 +192,14 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private val _spellDetails = MutableStateFlow<DndSpellResponse?>(null)
+    // Spell details — now uses SpellEntity directly
+    private val _spellDetails = MutableStateFlow<SpellEntity?>(null)
     val spellDetails = _spellDetails.asStateFlow()
 
     fun fetchSpellDetails(index: String) {
         viewModelScope.launch {
             try {
-                _spellDetails.value = dndApiService.getSpellDetails(index, lang = languageTag)
+                _spellDetails.value = spellRepository.fetchSpellDetails(index)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -248,24 +233,13 @@ class MainViewModel @Inject constructor(
         _subclasses.value = ClassRegistry.getSubclasses(classIndex)
     }
 
-    //========================= API ==========================
-
-    fun fetchSpells(classIndex: String) {
-        viewModelScope.launch {
-            try {
-                val response = dndApiService.getSpells(lang = languageTag)
-                _spells.value = response.results
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
+    //========================= Firestore ==========================
 
     fun fetchMonsters() {
         viewModelScope.launch {
             try {
-                val response = dndApiService.getMonsters(lang = languageTag)
-                _monsters.value = response.results
+                val creatures = firestoreRepository.fetchCreatureList()
+                _monsters.value = creatures
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -277,6 +251,7 @@ class MainViewModel @Inject constructor(
 
     fun fetchMonsterDetails(index: String) {
         viewModelScope.launch {
+            // Check local Room DB first
             val local = enemyDao.getEnemyByIndex(index)
             if (local != null) {
                 _monsterDetails.value = DndMonsterResponse(
@@ -299,9 +274,9 @@ class MainViewModel @Inject constructor(
                     actions = local.actions,
                     image = local.imgUri
                 )
-            } else if (isNetworkAvailable.value) {
+            } else {
                 try {
-                    _monsterDetails.value = dndApiService.getMonsterDetails(index, lang = languageTag)
+                    _monsterDetails.value = firestoreRepository.fetchCreatureByKey(index)
                 } catch (e: Exception) {
                     e.printStackTrace()
                     _monsterDetails.value = null
@@ -313,17 +288,6 @@ class MainViewModel @Inject constructor(
     fun emptyMonsterDetails() {
         viewModelScope.launch {
             _monsterDetails.value = null
-        }
-    }
-
-    fun fetchClassSpells(classIndex: String) {
-        viewModelScope.launch {
-            try {
-                val response = dndApiService.getClassSpells(classIndex, lang = languageTag)
-                _spells.value = response.results
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
         }
     }
 
