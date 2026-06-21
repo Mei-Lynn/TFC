@@ -14,9 +14,16 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.DownloadDone
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Person
+import com.utad.tfg.remote.MonsterAction
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -39,7 +46,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.material3.Divider
 import androidx.compose.material3.HorizontalDivider
@@ -270,6 +276,7 @@ fun MonsterInfoDialog(onDismiss: () -> Unit, index: String) {
                     modifier = Modifier
                         .padding(16.dp)
                         .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
                 ) {
                     Text(
                         text = m.name,
@@ -307,24 +314,57 @@ fun MonsterInfoDialog(onDismiss: () -> Unit, index: String) {
                     if (!m.actions.isNullOrEmpty()) {
                         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                         Text(text = "Actions", style = MaterialTheme.typography.titleMedium)
-                        m.actions.take(3).forEach { action ->
-                            Text(
-                                text = action.name,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = action.desc,
-                                style = MaterialTheme.typography.bodySmall,
-                                maxLines = 3,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
+                        m.actions.forEach { action ->
+                            ExpandableActionItem(action)
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun ExpandableActionItem(action: MonsterAction) {
+    var expanded by remember { mutableStateOf(false) }
+    var isExpandable by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (isExpandable) Modifier.clickable { expanded = !expanded } else Modifier)
+            .padding(vertical = 4.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = action.name,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            if (isExpandable) {
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (expanded) "Collapse" else "Expand"
+                )
+            }
+        }
+        Text(
+            text = action.desc,
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = if (expanded) Int.MAX_VALUE else 1,
+            overflow = TextOverflow.Ellipsis,
+            onTextLayout = { textLayoutResult ->
+                if (!expanded && textLayoutResult.hasVisualOverflow) {
+                    isExpandable = true
+                }
+            },
+            modifier = Modifier.padding(top = 2.dp)
+        )
     }
 }
 
