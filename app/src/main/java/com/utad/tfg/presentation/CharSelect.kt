@@ -1,27 +1,31 @@
 package com.utad.tfg.presentation
 
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,7 +38,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -42,11 +45,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
 import com.utad.tfg.local.entities.Character
 import com.utad.tfg.model.CharState
 import androidx.compose.ui.res.stringResource
@@ -75,8 +84,6 @@ fun CharSelectScreen(onAddCharacter: () -> Unit, onCharacterClick: () -> Unit) {
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            //item {Text("SelectedIDs: ${selectedIDs.joinToString(", ")}")}
-
             items(characters) { character ->
                 CharacterCard(
                     character = character,
@@ -106,6 +113,11 @@ fun CharacterCard(
     onToggleSelect: () -> Unit,
     onClick: (Character) -> Unit
 ) {
+    val race = character.raceIndex.replaceFirstChar { it.uppercase() } +
+            (character.subraceIndex?.let { " (${it.replaceFirstChar { char -> char.uppercase() }})" } ?: "")
+    val dndClass = character.classIndex.replaceFirstChar { it.uppercase() } +
+            (character.subclassIndex?.let { " (${it.replaceFirstChar { char -> char.uppercase() }})" } ?: "")
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -115,67 +127,113 @@ fun CharacterCard(
                     else onClick(character)
                 },
                 onLongClick = onToggleSelect
+            )
+            .then(
+                if (isSelected) Modifier.border(
+                    2.dp,
+                    MaterialTheme.colorScheme.primary,
+                    RoundedCornerShape(16.dp)
+                ) else Modifier
             ),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primary
-                             else MaterialTheme.colorScheme.surfaceVariant
+            containerColor = if (isSelected)
+                MaterialTheme.colorScheme.primaryContainer
+            else
+                MaterialTheme.colorScheme.surfaceVariant
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Column(
+        Row(
             modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth()
+                .padding(12.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // Left: Circular character image
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.linearGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f)
+                            )
+                        )
+                    )
+                    .border(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                if (character.imgUri != null) {
+                    AsyncImage(
+                        model = character.imgUri,
+                        contentDescription = character.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = character.name,
+                        modifier = Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Center: Name + Class info
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
                     text = character.name,
-                    style = MaterialTheme.typography.titleLarge
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-                /*val (statusText, statusColor) = when (character.state) {
-                    CharState.active -> "Active" to Color(0xFF4CAF50)
-                    CharState.dead -> "Dead" to Color(0xFFF44336)
-                    CharState.noCampaign -> "Waiting" to Color(0xFF2196F3)
-                    CharState.retired -> "Finished" to Color(0xFF9E9E9E)
-                }
                 Text(
-                    text = statusText,
-                    color = statusColor,
-                    style = MaterialTheme.typography.labelLarge
-                )*/
-                //Text(character.remoteId ?: "null")
+                    //text = "$race · $dndClass",
+                    text = dndClass,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
 
-            Spacer(Modifier.height(8.dp))
-
-            val race = character.raceIndex.replaceFirstChar { it.uppercase() } +
-                    (character.subraceIndex?.let { " (${it.replaceFirstChar { char -> char.uppercase() }})" } ?: "")
-            val dndClass = character.classIndex.replaceFirstChar { it.uppercase() } +
-                    (character.subclassIndex?.let { " (${it.replaceFirstChar { char -> char.uppercase() }})" } ?: "")
-
-            Text(
-                text = "Level ${character.level} $race $dndClass",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            // Right: Level badge
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                            )
+                        )
+                    ),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "HP: ${character.currentHp}/${character.maxHp}",
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Text(
-                    text = "AC: ${character.armorClass}",
-                    style = MaterialTheme.typography.bodySmall
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "${character.level}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Text(
+                        text = "LVL",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                    )
+                }
             }
         }
     }

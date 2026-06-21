@@ -14,7 +14,7 @@ import com.utad.tfg.local.entities.SpellEntity
 
 @Database(
     entities = [Campaign::class, Character::class, Enemy::class, SpellEntity::class],
-    version = 12,
+    version = 13,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

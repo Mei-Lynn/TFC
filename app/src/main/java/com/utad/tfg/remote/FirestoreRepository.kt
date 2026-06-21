@@ -1,5 +1,10 @@
 package com.utad.tfg.remote
 
+import android.app.Application
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
+import android.util.Base64
 import android.util.Log
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.firebase.firestore.FirebaseFirestore
@@ -11,6 +16,9 @@ import com.utad.tfg.model.CharState
 import com.utad.tfg.security.AuthRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.tasks.await
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -20,6 +28,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class FirestoreRepository @Inject constructor(
+    private val application: Application,
     private val firestore: FirebaseFirestore,
     private val authRepository: AuthRepository,
     private val characterDao: CharacterDao
@@ -316,6 +325,17 @@ class FirestoreRepository @Inject constructor(
                 }
                 Log.d(TAG, "Downloaded ${snapshot.size()} characters for user ${user.uid}")
 
+                // Decode Base64 images for characters that have them
+                characterDao.getAllCharacters().first().forEach { char ->
+                    val imgUri = char.imgUri
+                    if (imgUri != null && imgUri.startsWith("data:image/jpeg;base64,")) {
+                        val localUri = decodeBase64ToImage(imgUri, char.remoteId ?: "char_${char.id}")
+                        if (localUri != null) {
+                            characterDao.updateCharacter(char.copy(imgUri = localUri))
+                        }
+                    }
+                }
+
             } catch (e: FirebaseFirestoreException) {
                 handleFirestoreError("downloadCharactersbyUID(${user.uid})", e)
             } catch (e: Exception) {
@@ -367,7 +387,18 @@ class FirestoreRepository @Inject constructor(
 
         if (user != null) {
             try {
-                val characterData = mapCharacterToData(character, user.uid)
+                // Encode image if it's a local file
+                var imgUriForRemote = character.imgUri
+                if (imgUriForRemote != null && imgUriForRemote.startsWith("file://")) {
+                    val base64Str = encodeImageToBase64(imgUriForRemote)
+                    if (base64Str != null) {
+                        imgUriForRemote = base64Str
+                    }
+                }
+
+                val characterData = mapCharacterToData(
+                    character.copy(imgUri = imgUriForRemote), user.uid
+                )
 
                 val result = firestore.collection("characters").add(characterData).await()
 
@@ -389,7 +420,18 @@ class FirestoreRepository @Inject constructor(
 
         if (user != null && remoteId != null) {
             try {
-                val characterData = mapCharacterToData(character, user.uid)
+                // Encode image if it's a local file
+                var imgUriForRemote = character.imgUri
+                if (imgUriForRemote != null && imgUriForRemote.startsWith("file://")) {
+                    val base64Str = encodeImageToBase64(imgUriForRemote)
+                    if (base64Str != null) {
+                        imgUriForRemote = base64Str
+                    }
+                }
+
+                val characterData = mapCharacterToData(
+                    character.copy(imgUri = imgUriForRemote), user.uid
+                )
 
                 firestore.collection("characters")
                     .document(remoteId)
@@ -421,6 +463,72 @@ class FirestoreRepository @Inject constructor(
             } catch (e: Exception) {
                 Log.e(TAG, "Unexpected error in deleteCharacter", e)
             }
+        }
+    }
+
+    // ========================= Image Helpers =========================
+
+    /**
+     * Reads a local image file, heavily compresses it, and encodes to Base64.
+     * @return The Base64 string prefixed with data:image/jpeg;base64,, or null on failure.
+     */
+    private fun encodeImageToBase64(localUri: String): String? {
+        return try {
+            val uri = Uri.parse(localUri)
+            application.contentResolver.openInputStream(uri)?.use { input ->
+                val original = BitmapFactory.decodeStream(input)
+                val maxDimension = 400 // Heavily downscale to stay under Firestore 1MB limit
+                val scaled = if (original.width > maxDimension || original.height > maxDimension) {
+                    val ratio = maxDimension.toFloat() / maxOf(original.width, original.height)
+                    Bitmap.createScaledBitmap(
+                        original,
+                        (original.width * ratio).toInt(),
+                        (original.height * ratio).toInt(),
+                        true
+                    )
+                } else original
+
+                val outputStream = ByteArrayOutputStream()
+                // 60% JPEG quality to further reduce size
+                scaled.compress(Bitmap.CompressFormat.JPEG, 60, outputStream)
+                if (scaled !== original) scaled.recycle()
+                original.recycle()
+
+                val byteArray = outputStream.toByteArray()
+                val base64String = Base64.encodeToString(byteArray, Base64.NO_WRAP)
+                Log.d(TAG, "Encoded image to Base64. Size in bytes: ${byteArray.size}")
+                "data:image/jpeg;base64,$base64String"
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to encode image to Base64", e)
+            null
+        }
+    }
+
+    /**
+     * Decodes a Base64 string back into a local file.
+     * @return The local file:// URI string, or null on failure.
+     */
+    private fun decodeBase64ToImage(base64Str: String, filename: String): String? {
+        return try {
+            val cleanBase64 = if (base64Str.startsWith("data:image/jpeg;base64,")) {
+                base64Str.substring("data:image/jpeg;base64,".length)
+            } else base64Str
+
+            val imageBytes = Base64.decode(cleanBase64, Base64.DEFAULT)
+
+            val dir = File(application.filesDir, "character_images")
+            if (!dir.exists()) dir.mkdirs()
+            val destFile = File(dir, "$filename.jpg")
+
+            FileOutputStream(destFile).use { it.write(imageBytes) }
+
+            val localUri = Uri.fromFile(destFile).toString()
+            Log.d(TAG, "Image decoded and saved for $filename: $localUri")
+            localUri
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to decode Base64 image for $filename", e)
+            null
         }
     }
 }

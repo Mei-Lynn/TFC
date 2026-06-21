@@ -1,24 +1,39 @@
 package com.utad.tfg.presentation
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import coil3.compose.AsyncImage
 import com.utad.tfg.model.Ability
 import com.utad.tfg.model.ArmorType
 import com.utad.tfg.model.DndRace
@@ -37,6 +52,8 @@ import com.utad.tfg.model.classes.barbarian.Barbarian
 import com.utad.tfg.ui.theme.TFGTheme
 import androidx.compose.ui.res.stringResource
 import com.utad.tfg.R
+import java.io.File
+import java.util.UUID
 
 @Composable
 fun CharCreateScreen(
@@ -48,6 +65,18 @@ fun CharCreateScreen(
     val subraces by vm.subraces.collectAsState()
     val subclasses by vm.subclasses.collectAsState()
     val filteredSpells by vm.filteredSpells.collectAsState()
+    val context = LocalContext.current
+
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        uri?.let {
+            val internalUri = copyImageToInternalStorage(context, it)
+            selectedImageUri = internalUri
+        }
+    }
 
     CharCreateContent(
         races = races,
@@ -55,10 +84,14 @@ fun CharCreateScreen(
         subraces = subraces,
         subclasses = subclasses,
         filteredSpells = filteredSpells,
+        imageUri = selectedImageUri,
+        onPickImage = {
+            imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        },
         onRaceSelected = { vm.getSubraces(it) },
         onClassSelected = { vm.getSubclasses(it); vm.filterSpells(0..1, it) },
         onSaveCharacter = { name, race, subrace, dndClass, subclass, scores, cantrips, spells, mainHand, offHand, armor ->
-            vm.saveCharacter(name, race, subrace, dndClass, subclass, scores, cantrips, spells, mainHand, offHand, armor)
+            vm.saveCharacter(name, race, subrace, dndClass, subclass, scores, cantrips, spells, mainHand, offHand, armor, imgUri = selectedImageUri?.toString())
             onCharacterCreated()
         }
     )
@@ -71,6 +104,8 @@ fun CharCreateContent(
     subraces: List<DndRace>,
     subclasses: List<Subclass>,
     filteredSpells: List<SpellEntity>,
+    imageUri: Uri? = null,
+    onPickImage: () -> Unit = {},
     onRaceSelected: (String) -> Unit,
     onClassSelected: (String) -> Unit,
     onSaveCharacter: (String, DndRace, DndRace?, DndClass, Subclass?, Map<Ability, Int>, List<SpellEntity>, List<SpellEntity>, String?, String?, String?) -> Unit
@@ -109,6 +144,40 @@ fun CharCreateContent(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(stringResource(R.string.character_creation), style = MaterialTheme.typography.headlineMedium)
+
+        // Character Image Picker
+        Box(
+            modifier = Modifier
+                .size(96.dp)
+                .align(Alignment.CenterHorizontally)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                .clickable { onPickImage() },
+            contentAlignment = Alignment.Center
+        ) {
+            if (imageUri != null) {
+                AsyncImage(
+                    model = imageUri,
+                    contentDescription = stringResource(R.string.character_name),
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Icon(
+                    Icons.Default.Person,
+                    contentDescription = stringResource(R.string.add_character),
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        Text(
+            text = if (imageUri != null) "" else "Tap to add image",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
 
         // Nombre
         OutlinedTextField(
@@ -487,5 +556,45 @@ fun CharCreatePreview() {
             onClassSelected = {},
             onSaveCharacter = { _, _, _, _, _, _, _, _, _, _, _ -> }
         )
+    }
+}
+
+/**
+ * Copies an image from a content URI to the app's internal storage.
+ * Resizes to max 1024px on the longest side to save space.
+ * Returns the file:// URI of the internal copy.
+ */
+fun copyImageToInternalStorage(context: Context, sourceUri: Uri): Uri? {
+    return try {
+        val dir = File(context.filesDir, "character_images")
+        if (!dir.exists()) dir.mkdirs()
+        val filename = "char_${UUID.randomUUID()}.jpg"
+        val destFile = File(dir, filename)
+
+        context.contentResolver.openInputStream(sourceUri)?.use { input ->
+            // Decode and resize
+            val original = BitmapFactory.decodeStream(input)
+            val maxDimension = 1024
+            val scaled = if (original.width > maxDimension || original.height > maxDimension) {
+                val ratio = maxDimension.toFloat() / maxOf(original.width, original.height)
+                Bitmap.createScaledBitmap(
+                    original,
+                    (original.width * ratio).toInt(),
+                    (original.height * ratio).toInt(),
+                    true
+                )
+            } else original
+
+            destFile.outputStream().use { output ->
+                scaled.compress(Bitmap.CompressFormat.JPEG, 85, output)
+            }
+            if (scaled !== original) scaled.recycle()
+            original.recycle()
+        }
+
+        Uri.fromFile(destFile)
+    } catch (e: Exception) {
+        Log.e("CharCreate", "Failed to copy image", e)
+        null
     }
 }

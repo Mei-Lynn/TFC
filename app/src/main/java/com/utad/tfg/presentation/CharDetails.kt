@@ -1,22 +1,30 @@
 package com.utad.tfg.presentation
 
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Upgrade
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -27,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
 import com.utad.tfg.local.entities.Character
 import com.utad.tfg.local.entities.SpellEntity
 import com.utad.tfg.model.Ability
@@ -53,10 +62,22 @@ fun CharDetailsScreen(
     val vm = hiltViewModel<MainViewModel>(LocalContext.current as ComponentActivity)
     val character by vm.selectedCharacter.collectAsStateWithLifecycle()
     val characterSpells by vm.fullSelectedCharacterSpells.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     
     var showSpellDialog by remember { mutableStateOf(false) }
     var selectedSpellIndex by remember { mutableStateOf<String?>(null) }
     var showSpellChangeDialog by remember { mutableStateOf(false) }
+
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: android.net.Uri? ->
+        uri?.let {
+            val internalUri = copyImageToInternalStorage(context, it)
+            character?.let { char ->
+                vm.updateCharacterImage(char, internalUri?.toString())
+            }
+        }
+    }
 
     val canPrepareSpells = character?.classIndex in listOf("wizard", "cleric", "druid")
 
@@ -117,7 +138,12 @@ fun CharDetailsScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Header Info
-                HeaderSection(char)
+                HeaderSection(
+                    char = char,
+                    onChangeImage = {
+                        imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    }
+                )
 
                 HorizontalDivider()
 
@@ -190,18 +216,50 @@ fun CharDetailsScreen(
 }
 
 @Composable
-fun HeaderSection(char: Character) {
-    Column {
-        val race = char.raceIndex.replaceFirstChar { it.uppercase() } +
-                (char.subraceIndex?.let { " (${it.replaceFirstChar { char -> char.uppercase() }})" } ?: "")
-        val dndClass = char.classIndex.replaceFirstChar { it.uppercase() } +
-                (char.subclassIndex?.let { " (${it.replaceFirstChar { char -> char.uppercase() }})" } ?: "")
+fun HeaderSection(char: Character, onChangeImage: () -> Unit = {}) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Circular character image
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                .clickable { onChangeImage() },
+            contentAlignment = Alignment.Center
+        ) {
+            if (char.imgUri != null) {
+                AsyncImage(
+                    model = char.imgUri,
+                    contentDescription = char.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Icon(
+                    Icons.Default.Person,
+                    contentDescription = char.name,
+                    modifier = Modifier.size(40.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
 
-        Text(
-            text = "Level ${char.level} $race $dndClass",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.secondary
-        )
+        Column {
+            val race = char.raceIndex.replaceFirstChar { it.uppercase() } +
+                    (char.subraceIndex?.let { " (${it.replaceFirstChar { char -> char.uppercase() }})" } ?: "")
+            val dndClass = char.classIndex.replaceFirstChar { it.uppercase() } +
+                    (char.subclassIndex?.let { " (${it.replaceFirstChar { char -> char.uppercase() }})" } ?: "")
+
+            Text(
+                text = "Level ${char.level} $race $dndClass",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.secondary
+            )
+        }
     }
 }
 

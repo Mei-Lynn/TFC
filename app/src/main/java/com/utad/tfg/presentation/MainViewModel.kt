@@ -1,5 +1,6 @@
 package com.utad.tfg.presentation
 
+import android.app.Application
 import android.util.Log
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
@@ -36,6 +37,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
+    private val application: Application,
     private val firestoreRepository: FirestoreRepository,
     private val enemyDao: EnemyDao,
     private val characterDao: CharacterDao,
@@ -131,7 +133,8 @@ class MainViewModel @Inject constructor(
         spells: List<SpellEntity> = emptyList(),
         mainHandIndex: String? = null,
         offHandIndex: String? = null,
-        armorIndex: String? = null
+        armorIndex: String? = null,
+        imgUri: String? = null
     ) {
         viewModelScope.launch {
             // Lazy sync spell details before saving character
@@ -159,6 +162,7 @@ class MainViewModel @Inject constructor(
                 intelligence = abilityScores[Ability.Intelligence] ?: 10,
                 wisdom = abilityScores[Ability.Wisdom] ?: 10,
                 charisma = abilityScores[Ability.Charisma] ?: 10,
+                imgUri = imgUri,
                 cantrips = cantrips.map { it.index },
                 preparedSpells = spells.map { it.index },
                 mainHandIndex = mainHandIndex,
@@ -173,10 +177,39 @@ class MainViewModel @Inject constructor(
 
     fun deleteCharactersByID(selectedIDs: SnapshotStateList<Long>, afterDeletion: () -> Unit) {
         viewModelScope.launch {
+            // Clean up local image files before deleting characters
+            val characters = localCharacters.value.filter { selectedIDs.contains(it.id) }
+            characters.forEach { char ->
+                char.imgUri?.let { uri ->
+                    try {
+                        val file = java.io.File(android.net.Uri.parse(uri).path ?: return@let)
+                        if (file.exists()) file.delete()
+                    } catch (_: Exception) { }
+                }
+            }
+
             val remoteIds = characterDao.getRemoteIdByID(selectedIDs).filterNotNull()
             firestoreRepository.deleteCharacters(remoteIds)
             characterDao.deleteCharactersByID(selectedIDs)
             afterDeletion()
+        }
+    }
+
+    fun updateCharacterImage(character: Character, imgUri: String?) {
+        viewModelScope.launch {
+            // Delete old image file if it exists and is different
+            character.imgUri?.let { oldUri ->
+                if (oldUri != imgUri) {
+                    try {
+                        val file = java.io.File(android.net.Uri.parse(oldUri).path ?: return@let)
+                        if (file.exists()) file.delete()
+                    } catch (_: Exception) { }
+                }
+            }
+            val updatedChar = character.copy(imgUri = imgUri)
+            characterDao.updateCharacter(updatedChar)
+            firestoreRepository.updateCharacterRemote(updatedChar)
+            _selectedCharacter.value = updatedChar
         }
     }
 
