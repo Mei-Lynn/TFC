@@ -3,6 +3,7 @@ package com.utad.tfg.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseUser
+import com.utad.tfg.local.daos.CharacterDao
 import com.utad.tfg.security.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +23,8 @@ sealed class AuthState {
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val characterDao: CharacterDao
 ) : ViewModel() {
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
@@ -77,6 +79,10 @@ class AuthViewModel @Inject constructor(
     fun signOut() {
         authRepository.signOut()
         _authState.value = AuthState.Idle
+
+        viewModelScope.launch {
+            characterDao.deleteAllCharacters()
+        }
     }
 
     fun clearError() {

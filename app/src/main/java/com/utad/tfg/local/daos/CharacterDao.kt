@@ -23,12 +23,18 @@ interface CharacterDao {
     @Query("DELETE FROM characters WHERE id IN (:ids)")
     suspend fun deleteCharactersByID(ids: List<Long>)
 
+    @Query("SELECT remoteId FROM characters WHERE id IN (:ids)")
+    suspend fun getRemoteIdByID(ids : List<Long>): List<String?>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertCharacter(character: Character)
+    suspend fun insertCharacter(character: Character): Long
 
     @Update
     suspend fun updateCharacter(character: Character)
 
     @Delete
     suspend fun deleteCharacter(character: Character)
+
+    @Query("DELETE FROM characters")
+    suspend fun deleteAllCharacters()
 }

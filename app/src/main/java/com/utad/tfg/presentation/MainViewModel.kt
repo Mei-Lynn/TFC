@@ -23,11 +23,13 @@ import com.utad.tfg.remote.JsonResource
 import com.utad.tfg.remote.MonsterSpeed
 import com.utad.tfg.remote.SpellRepository
 import com.utad.tfg.remote.toEnemy
+import com.utad.tfg.security.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -37,7 +39,8 @@ class MainViewModel @Inject constructor(
     private val firestoreRepository: FirestoreRepository,
     private val enemyDao: EnemyDao,
     private val characterDao: CharacterDao,
-    private val spellRepository: SpellRepository
+    private val spellRepository: SpellRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
     private val _races = MutableStateFlow<List<DndRace>>(emptyList())
     val races = _races.asStateFlow()
@@ -67,6 +70,12 @@ class MainViewModel @Inject constructor(
         fetchMonsters()
         viewModelScope.launch {
             spellRepository.syncSpellsIfNeeded()
+
+            authRepository.currentUser.collect { user ->
+                if (user != null){
+                    firestoreRepository.downloadCharactersbyUID()
+                }
+            }
         }
     }
 
@@ -156,12 +165,16 @@ class MainViewModel @Inject constructor(
                 offHandIndex = offHandIndex,
                 armorIndex = armorIndex
             )
-            characterDao.insertCharacter(newChar)
+            val generatedId = characterDao.insertCharacter(newChar)
+            val characterToUpload = newChar.copy(id = generatedId)
+            firestoreRepository.uploadCharacter(characterToUpload)
         }
     }
 
     fun deleteCharactersByID(selectedIDs: SnapshotStateList<Long>, afterDeletion: () -> Unit) {
         viewModelScope.launch {
+            val remoteIds = characterDao.getRemoteIdByID(selectedIDs).filterNotNull()
+            firestoreRepository.deleteCharacters(remoteIds)
             characterDao.deleteCharactersByID(selectedIDs)
             afterDeletion()
         }

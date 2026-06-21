@@ -147,6 +147,7 @@ fun CharacterCard(
                     color = statusColor,
                     style = MaterialTheme.typography.labelLarge
                 )*/
+                Text(character.remoteId ?: "null")
             }
 
             Spacer(Modifier.height(8.dp))

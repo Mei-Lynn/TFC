@@ -21,6 +21,7 @@ import com.utad.tfg.model.CharState
 data class Character(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val remoteId: String? = null,
     val campaignId: String? = null,
     val name: String,
     val raceIndex: String,

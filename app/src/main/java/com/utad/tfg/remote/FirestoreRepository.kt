@@ -1,9 +1,15 @@
 package com.utad.tfg.remote
 
 import android.util.Log
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
+import com.utad.tfg.local.daos.CharacterDao
+import com.utad.tfg.local.entities.Character
 import com.utad.tfg.local.entities.SpellEntity
+import com.utad.tfg.model.CharState
+import com.utad.tfg.security.AuthRepository
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -14,7 +20,9 @@ import javax.inject.Singleton
  */
 @Singleton
 class FirestoreRepository @Inject constructor(
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val authRepository: AuthRepository,
+    private val characterDao: CharacterDao
 ) {
     private val TAG = "FirestoreRepository"
 
@@ -250,5 +258,141 @@ class FirestoreRepository @Inject constructor(
             actions = actions + traits,
             image = illustration
         )
+    }
+
+    //===================== Characters (Cloud saving) ====================
+    suspend fun downloadCharactersbyUID() {
+        val user = authRepository.currentUser.first()
+
+        if (user != null) {
+            try {
+                val snapshot = firestore.collection("characters")
+                    .whereEqualTo("uid", user.uid)
+                    .get()
+                    .await()
+
+                characterDao.deleteAllCharacters()
+
+                snapshot.documents.forEach { doc ->
+                    val data = doc.data ?: return@forEach
+                    val remoteId = doc.id
+
+                    val charState = when (data["state"] as? String) {
+                        "active" -> CharState.active
+                        "dead" -> CharState.dead
+                        "retired" -> CharState.retired
+                        else -> CharState.noCampaign
+                    }
+
+                    val character = Character(
+                        remoteId = remoteId,
+                        campaignId = data["campaignId"] as? String,
+                        name = data["name"] as? String ?: "Unknown",
+                        raceIndex = data["raceIndex"] as? String ?: "",
+                        subraceIndex = data["subraceIndex"] as? String,
+                        classIndex = data["classIndex"] as? String ?: "",
+                        subclassIndex = data["subclassIndex"] as? String,
+                        level = (data["level"] as? Long)?.toInt() ?: 1,
+                        maxHp = (data["maxHp"] as? Long)?.toInt() ?: 10,
+                        currentHp = (data["currentHp"] as? Long)?.toInt() ?: 10,
+                        armorClass = (data["armorClass"] as? Long)?.toInt() ?: 10,
+                        initiative = (data["initiative"] as? Long)?.toInt() ?: 0,
+                        strength = (data["strength"] as? Long)?.toInt() ?: 10,
+                        dexterity = (data["dexterity"] as? Long)?.toInt() ?: 10,
+                        constitution = (data["constitution"] as? Long)?.toInt() ?: 10,
+                        intelligence = (data["intelligence"] as? Long)?.toInt() ?: 10,
+                        wisdom = (data["wisdom"] as? Long)?.toInt() ?: 10,
+                        charisma = (data["charisma"] as? Long)?.toInt() ?: 10,
+                        imgUri = data["imgUri"] as? String,
+                        state = charState,
+                        cantrips = data["cantrips"] as? List<String> ?: emptyList(),
+                        preparedSpells = data["preparedSpells"] as? List<String> ?: emptyList(),
+                        mainHandIndex = data["mainHandIndex"] as? String,
+                        offHandIndex = data["offHandIndex"] as? String,
+                        armorIndex = data["armorIndex"] as? String
+                    )
+
+                    characterDao.insertCharacter(character)
+                }
+                Log.d(TAG, "Downloaded ${snapshot.size()} characters for user ${user.uid}")
+
+            } catch (e: FirebaseFirestoreException) {
+                handleFirestoreError("downloadCharactersbyUID(${user.uid})", e)
+            } catch (e: Exception) {
+                Log.e(TAG, "Unexpected error in downloadCharactersByUID", e)
+            }
+        }
+    }
+
+    suspend fun uploadCharacter(character: Character) {
+        val user = authRepository.currentUser.first()
+
+        if (user != null) {
+            try {
+                val stateStr = when (character.state) {
+                    is CharState.active -> "active"
+                    is CharState.dead -> "dead"
+                    is CharState.retired -> "retired"
+                    is CharState.noCampaign -> "noCampaign"
+                }
+
+                val characterData = hashMapOf(
+                    "localId" to character.id,
+                    "uid" to user.uid,
+                    "name" to character.name,
+                    "campaignId" to character.campaignId,
+                    "raceIndex" to character.raceIndex,
+                    "subraceIndex" to character.subraceIndex,
+                    "classIndex" to character.classIndex,
+                    "subclassIndex" to character.subclassIndex,
+                    "level" to character.level,
+                    "maxHp" to character.maxHp,
+                    "currentHp" to character.currentHp,
+                    "armorClass" to character.armorClass,
+                    "initiative" to character.initiative,
+                    "strength" to character.strength,
+                    "dexterity" to character.dexterity,
+                    "constitution" to character.constitution,
+                    "intelligence" to character.intelligence,
+                    "wisdom" to character.wisdom,
+                    "charisma" to character.charisma,
+                    "imgUri" to character.imgUri,
+                    "state" to stateStr,
+                    "cantrips" to character.cantrips,
+                    "preparedSpells" to character.preparedSpells,
+                    "mainHandIndex" to character.mainHandIndex,
+                    "offHandIndex" to character.offHandIndex,
+                    "armorIndex" to character.armorIndex
+                )
+
+                val result = firestore.collection("characters").add(characterData).await()
+
+                val characterWithRemoteID = character.copy(remoteId = result.id)
+                characterDao.updateCharacter(characterWithRemoteID)
+
+                Log.d(TAG, "Character uploaded successfully: ${character.name}")
+            } catch (e: FirebaseFirestoreException) {
+                handleFirestoreError("uploadCharacter($character)", e)
+            } catch (e: Exception) {
+                Log.e(TAG, "Unexpected error in uploadCharacter", e)
+            }
+        }
+    }
+
+    suspend fun deleteCharacters(remoteIds : List<String>) {
+        val user = authRepository.currentUser.first()
+
+        if (user != null) {
+            try {
+                remoteIds.forEach { id ->
+                    firestore.collection("characters").document(id).delete().await()
+                    Log.d(TAG, "Succesfully deleted character with id $id")
+                }
+            } catch (e: FirebaseFirestoreException) {
+                handleFirestoreError("deleteCharacter()", e)
+            } catch (e: Exception) {
+                Log.e(TAG, "Unexpected error in deleteCharacter", e)
+            }
+        }
     }
 }
