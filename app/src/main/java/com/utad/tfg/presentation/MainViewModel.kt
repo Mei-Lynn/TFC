@@ -1,7 +1,6 @@
 package com.utad.tfg.presentation
 
 import android.app.Application
-import android.util.Log
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -30,10 +29,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+
+sealed class CharSyncState {
+    data object Syncing: CharSyncState()
+    data object Done: CharSyncState()
+}
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -66,6 +70,9 @@ class MainViewModel @Inject constructor(
     val localCharacters: StateFlow<List<Character>> = characterDao.getAllCharacters()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private val _charSyncState = MutableStateFlow<CharSyncState>(CharSyncState.Syncing)
+    val charSyncState = _charSyncState.asStateFlow()
+
     init {
         _races.value = RaceRegistry.races
         _classes.value = ClassRegistry.classes
@@ -73,10 +80,13 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             spellRepository.syncSpellsIfNeeded()
 
+            characterDao.deleteAllCharacters()
             authRepository.currentUser.collect { user ->
+                _charSyncState.value = CharSyncState.Syncing
                 if (user != null){
-                    firestoreRepository.downloadCharactersbyUID()
+                    firestoreRepository.downloadCharactersByUID()
                 }
+                _charSyncState.value = CharSyncState.Done
             }
         }
     }

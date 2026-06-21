@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -68,6 +69,7 @@ fun CharSelectScreen(onAddCharacter: () -> Unit, onCharacterClick: () -> Unit) {
     var selectMode by remember { mutableStateOf(false) }
     val characters by vm.localCharacters.collectAsStateWithLifecycle()
     val selectedIDs = remember { mutableStateListOf<Long>() }
+    val syncState by vm.charSyncState.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = { CharSelectTopbar { auth.signOut() } },
@@ -77,30 +79,40 @@ fun CharSelectScreen(onAddCharacter: () -> Unit, onCharacterClick: () -> Unit) {
         },
     ) { paddingValues ->
 
-        LazyColumn(
-            modifier = Modifier
-                .padding(paddingValues)
-                .fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(characters) { character ->
-                CharacterCard(
-                    character = character,
-                    isSelected = selectedIDs.contains(character.id),
-                    isSelectMode = selectMode,
-                    onToggleSelect = {
-                        if (selectedIDs.contains(character.id)) {
-                            selectedIDs.remove(character.id)
-                        } else {
-                            selectedIDs.add(character.id)
-                        }
-                        selectMode = selectedIDs.isNotEmpty()
-                    },
-                    onClick = { vm.setSelectedCharacter(it); onCharacterClick() }
-                )
+        when (syncState) {
+            CharSyncState.Done -> LazyColumn(
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(characters) { character ->
+                    CharacterCard(
+                        character = character,
+                        isSelected = selectedIDs.contains(character.id),
+                        isSelectMode = selectMode,
+                        onToggleSelect = {
+                            if (selectedIDs.contains(character.id)) {
+                                selectedIDs.remove(character.id)
+                            } else {
+                                selectedIDs.add(character.id)
+                            }
+                            selectMode = selectedIDs.isNotEmpty()
+                        },
+                        onClick = { vm.setSelectedCharacter(it); onCharacterClick() }
+                    )
+                }
+            }
+            CharSyncState.Syncing -> Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
             }
         }
+
+
     }
 }
 

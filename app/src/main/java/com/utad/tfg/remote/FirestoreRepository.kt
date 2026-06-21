@@ -6,7 +6,6 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Base64
 import android.util.Log
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.utad.tfg.local.daos.CharacterDao
@@ -31,7 +30,7 @@ class FirestoreRepository @Inject constructor(
     private val application: Application,
     private val firestore: FirebaseFirestore,
     private val authRepository: AuthRepository,
-    private val characterDao: CharacterDao
+    private val characterDao: CharacterDao,
 ) {
     private val TAG = "FirestoreRepository"
 
@@ -270,7 +269,7 @@ class FirestoreRepository @Inject constructor(
     }
 
     //===================== Characters (Cloud saving) ====================
-    suspend fun downloadCharactersbyUID() {
+    suspend fun downloadCharactersByUID() {
         val user = authRepository.currentUser.first()
 
         if (user != null) {
