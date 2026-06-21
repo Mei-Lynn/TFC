@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -21,6 +22,12 @@ sealed class AuthState {
     data class Error(val message: String) : AuthState()
 }
 
+sealed class SessionState {
+    data object Loading: SessionState()
+    data class LoggedIn(val user: FirebaseUser): SessionState()
+    data object NotLogged : SessionState()
+}
+
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
@@ -29,6 +36,14 @@ class AuthViewModel @Inject constructor(
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
+
+    val sessionState: StateFlow<SessionState> = authRepository.currentUser
+        .map { user ->
+            if (user != null) SessionState.LoggedIn(user)
+            else SessionState.NotLogged
+        }
+        .stateIn(viewModelScope,
+            SharingStarted.WhileSubscribed(5000), SessionState.Loading)
 
     /** Reactive stream of the currently signed-in user (null = signed out). */
     val currentUser: StateFlow<FirebaseUser?> = authRepository.currentUser

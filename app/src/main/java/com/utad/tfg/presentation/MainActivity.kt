@@ -5,11 +5,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -18,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -46,11 +50,18 @@ class MainActivity : ComponentActivity() {
 fun RootScreen() {
     val authViewModel = hiltViewModel<AuthViewModel>()
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
+    val sessionState by authViewModel.sessionState.collectAsStateWithLifecycle()
 
-    if (currentUser == null) {
-        LoginScreen(authViewModel = authViewModel)
-    } else {
-        MainNavigation()
+    when (sessionState) {
+        SessionState.Loading -> Box(modifier = Modifier.fillMaxSize(), contentAlignment =  Alignment.Center ) { CircularProgressIndicator() }
+
+        else -> {
+            if (currentUser == null) {
+                LoginScreen(authViewModel = authViewModel)
+            } else {
+                MainNavigation()
+            }
+        }
     }
 }
 
