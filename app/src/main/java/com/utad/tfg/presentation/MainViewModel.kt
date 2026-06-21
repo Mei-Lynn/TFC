@@ -232,6 +232,7 @@ class MainViewModel @Inject constructor(
                 preparedSpells = newPreparedSpells
             )
             characterDao.updateCharacter(updatedChar)
+            firestoreRepository.updateCharacterRemote(updatedChar)
             _selectedCharacter.value = updatedChar
             loadSelectedCharacterSpells()
         }
@@ -330,6 +331,7 @@ class MainViewModel @Inject constructor(
                 preparedSpells = newPreparedSpells
             )
             characterDao.updateCharacter(updatedChar)
+            firestoreRepository.updateCharacterRemote(updatedChar)
             _selectedCharacter.value = updatedChar
             loadSelectedCharacterSpells()
         }

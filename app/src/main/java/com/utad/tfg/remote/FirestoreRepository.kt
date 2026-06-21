@@ -324,46 +324,50 @@ class FirestoreRepository @Inject constructor(
         }
     }
 
+    private fun mapCharacterToData(character: Character, uid: String): HashMap<String, Any?> {
+        val stateStr = when (character.state) {
+            is CharState.active -> "active"
+            is CharState.dead -> "dead"
+            is CharState.retired -> "retired"
+            is CharState.noCampaign -> "noCampaign"
+        }
+
+        return hashMapOf(
+            "localId" to character.id,
+            "uid" to uid,
+            "name" to character.name,
+            "campaignId" to character.campaignId,
+            "raceIndex" to character.raceIndex,
+            "subraceIndex" to character.subraceIndex,
+            "classIndex" to character.classIndex,
+            "subclassIndex" to character.subclassIndex,
+            "level" to character.level,
+            "maxHp" to character.maxHp,
+            "currentHp" to character.currentHp,
+            "armorClass" to character.armorClass,
+            "initiative" to character.initiative,
+            "strength" to character.strength,
+            "dexterity" to character.dexterity,
+            "constitution" to character.constitution,
+            "intelligence" to character.intelligence,
+            "wisdom" to character.wisdom,
+            "charisma" to character.charisma,
+            "imgUri" to character.imgUri,
+            "state" to stateStr,
+            "cantrips" to character.cantrips,
+            "preparedSpells" to character.preparedSpells,
+            "mainHandIndex" to character.mainHandIndex,
+            "offHandIndex" to character.offHandIndex,
+            "armorIndex" to character.armorIndex
+        )
+    }
+
     suspend fun uploadCharacter(character: Character) {
         val user = authRepository.currentUser.first()
 
         if (user != null) {
             try {
-                val stateStr = when (character.state) {
-                    is CharState.active -> "active"
-                    is CharState.dead -> "dead"
-                    is CharState.retired -> "retired"
-                    is CharState.noCampaign -> "noCampaign"
-                }
-
-                val characterData = hashMapOf(
-                    "localId" to character.id,
-                    "uid" to user.uid,
-                    "name" to character.name,
-                    "campaignId" to character.campaignId,
-                    "raceIndex" to character.raceIndex,
-                    "subraceIndex" to character.subraceIndex,
-                    "classIndex" to character.classIndex,
-                    "subclassIndex" to character.subclassIndex,
-                    "level" to character.level,
-                    "maxHp" to character.maxHp,
-                    "currentHp" to character.currentHp,
-                    "armorClass" to character.armorClass,
-                    "initiative" to character.initiative,
-                    "strength" to character.strength,
-                    "dexterity" to character.dexterity,
-                    "constitution" to character.constitution,
-                    "intelligence" to character.intelligence,
-                    "wisdom" to character.wisdom,
-                    "charisma" to character.charisma,
-                    "imgUri" to character.imgUri,
-                    "state" to stateStr,
-                    "cantrips" to character.cantrips,
-                    "preparedSpells" to character.preparedSpells,
-                    "mainHandIndex" to character.mainHandIndex,
-                    "offHandIndex" to character.offHandIndex,
-                    "armorIndex" to character.armorIndex
-                )
+                val characterData = mapCharacterToData(character, user.uid)
 
                 val result = firestore.collection("characters").add(characterData).await()
 
@@ -376,6 +380,30 @@ class FirestoreRepository @Inject constructor(
             } catch (e: Exception) {
                 Log.e(TAG, "Unexpected error in uploadCharacter", e)
             }
+        }
+    }
+
+    suspend fun updateCharacterRemote(character: Character) {
+        val user = authRepository.currentUser.first()
+        val remoteId = character.remoteId
+
+        if (user != null && remoteId != null) {
+            try {
+                val characterData = mapCharacterToData(character, user.uid)
+
+                firestore.collection("characters")
+                    .document(remoteId)
+                    .set(characterData)
+                    .await()
+
+                Log.d(TAG, "Character updated successfully: ${character.name}")
+            } catch (e: FirebaseFirestoreException) {
+                handleFirestoreError("updateCharacterRemote($character)", e)
+            } catch (e: Exception) {
+                Log.e(TAG, "Unexpected error in updateCharacterRemote", e)
+            }
+        } else {
+            Log.w(TAG, "Cannot update character remote: user=$user, remoteId=$remoteId")
         }
     }
 
