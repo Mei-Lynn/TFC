@@ -23,6 +23,8 @@ import com.utad.tfg.remote.JsonResource
 import com.utad.tfg.remote.MonsterSpeed
 import com.utad.tfg.remote.SpellRepository
 import com.utad.tfg.remote.toEnemy
+import com.utad.tfg.model.equipment.Weapon
+import com.utad.tfg.model.equipment.Armor
 import com.utad.tfg.security.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -60,6 +62,12 @@ class MainViewModel @Inject constructor(
     private val _subclasses = MutableStateFlow<List<Subclass>>(emptyList())
     val subclasses = _subclasses.asStateFlow()
 
+    private val _weapons = MutableStateFlow<List<Weapon>>(emptyList())
+    val weapons = _weapons.asStateFlow()
+
+    private val _armors = MutableStateFlow<List<Armor>>(emptyList())
+    val armors = _armors.asStateFlow()
+
     private val _monsters = MutableStateFlow<List<JsonResource>>(emptyList())
     val monsters = _monsters.asStateFlow()
 
@@ -78,6 +86,8 @@ class MainViewModel @Inject constructor(
         _classes.value = ClassRegistry.classes
         fetchMonsters()
         viewModelScope.launch {
+            _weapons.value = firestoreRepository.getWeapons()
+            _armors.value = firestoreRepository.getArmor()
             spellRepository.syncSpellsIfNeeded()
 
             characterDao.deleteAllCharacters()

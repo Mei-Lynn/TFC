@@ -8,6 +8,7 @@ import com.utad.tfg.local.entities.Character
 interface Class {
     val className: String //Duh
     val classIndex: String //Index from the API
+    val imgUri: String?
     var level: Int //Nivel actual en la clase, para navegar las listas
     
     val primaryAbility: Ability //Stat principal de escalado

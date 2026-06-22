@@ -45,7 +45,6 @@ import com.utad.tfg.model.classes.ClassResource
 import com.utad.tfg.model.classes.Class as DndClass
 import com.utad.tfg.model.equipment.Armor
 import com.utad.tfg.model.equipment.Equipment
-import com.utad.tfg.model.equipment.EquipmentRegistry
 import com.utad.tfg.model.equipment.Weapon
 import com.utad.tfg.model.equipment.WeaponProperty
 
@@ -62,6 +61,8 @@ fun CharDetailsScreen(
     val vm = hiltViewModel<MainViewModel>(LocalContext.current as ComponentActivity)
     val character by vm.selectedCharacter.collectAsStateWithLifecycle()
     val characterSpells by vm.fullSelectedCharacterSpells.collectAsStateWithLifecycle()
+    val weapons by vm.weapons.collectAsStateWithLifecycle()
+    val armors by vm.armors.collectAsStateWithLifecycle()
     val context = LocalContext.current
     
     var showSpellDialog by remember { mutableStateOf(false) }
@@ -177,7 +178,7 @@ fun CharDetailsScreen(
                 HorizontalDivider()
 
                 // Equipment
-                EquipmentSection(char)
+                EquipmentSection(char, weapons, armors)
 
                 HorizontalDivider()
 
@@ -431,10 +432,10 @@ fun SlotItem(label: String, count: Int, color: Color) {
 }
 
 @Composable
-fun EquipmentSection(char: Character) {
-    val mainHand = EquipmentRegistry.getWeaponByIndex(char.mainHandIndex ?: "")
-    val offHand = EquipmentRegistry.getWeaponByIndex(char.offHandIndex ?: "") ?: EquipmentRegistry.getArmorByIndex(char.offHandIndex ?: "")
-    val armor = EquipmentRegistry.getArmorByIndex(char.armorIndex ?: "")
+fun EquipmentSection(char: Character, weapons: List<Weapon>, armors: List<Armor>) {
+    val mainHand = weapons.find { it.index == char.mainHandIndex }
+    val offHand = weapons.find { it.index == char.offHandIndex } ?: armors.find { it.index == char.offHandIndex }
+    val armor = armors.find { it.index == char.armorIndex }
 
     Column {
         Text(stringResource(R.string.equipment), style = MaterialTheme.typography.titleMedium)

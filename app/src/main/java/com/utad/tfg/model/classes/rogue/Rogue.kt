@@ -9,6 +9,7 @@ import com.utad.tfg.model.classes.*
 class Rogue(override var level: Int = 1) : Class {
     override val className: String = "Rogue"
     override val classIndex: String = "rogue"
+    override val imgUri: String? = ""
     override val primaryAbility: Ability = Ability.Dexterity
     override val savingThrows: List<Ability> = if (level >= 15) listOf(Ability.Dexterity, Ability.Intelligence, Ability.Wisdom) else listOf(Ability.Dexterity, Ability.Intelligence)
     override val armorProficiencies: List<ArmorType> = listOf(ArmorType.Light)

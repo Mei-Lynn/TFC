@@ -9,6 +9,7 @@ import com.utad.tfg.model.classes.*
 class Monk(override var level: Int = 1) : Class {
     override val className: String = "Monk"
     override val classIndex: String = "monk"
+    override val imgUri: String? = ""
     override val primaryAbility: Ability = Ability.Dexterity
     override val savingThrows: List<Ability> = if (level >= 14) Ability.allAbilities else listOf(Ability.Strength, Ability.Dexterity)
     override val armorProficiencies: List<ArmorType> = emptyList()

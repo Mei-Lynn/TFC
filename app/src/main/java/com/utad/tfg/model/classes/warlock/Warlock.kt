@@ -9,6 +9,7 @@ import com.utad.tfg.model.classes.*
 class Warlock(override var level: Int = 1) : Class {
     override val className: String = "Warlock"
     override val classIndex: String = "warlock"
+    override val imgUri: String? = ""
     override val primaryAbility: Ability = Ability.Charisma
     override val savingThrows: List<Ability> = listOf(Ability.Wisdom, Ability.Charisma)
     override val armorProficiencies: List<ArmorType> = listOf(ArmorType.Light)

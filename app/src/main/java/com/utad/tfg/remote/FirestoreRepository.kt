@@ -11,7 +11,12 @@ import com.google.firebase.firestore.FirebaseFirestoreException
 import com.utad.tfg.local.daos.CharacterDao
 import com.utad.tfg.local.entities.Character
 import com.utad.tfg.local.entities.SpellEntity
+import com.utad.tfg.model.ArmorType
 import com.utad.tfg.model.CharState
+import com.utad.tfg.model.WeaponType
+import com.utad.tfg.model.equipment.Armor
+import com.utad.tfg.model.equipment.Weapon
+import com.utad.tfg.model.equipment.WeaponProperty
 import com.utad.tfg.security.AuthRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.tasks.await
@@ -33,6 +38,85 @@ class FirestoreRepository @Inject constructor(
     private val characterDao: CharacterDao,
 ) {
     private val TAG = "FirestoreRepository"
+
+    // ========================= Equipment =========================
+
+    suspend fun getWeapons(): List<Weapon> {
+        return try {
+            val snapshot = firestore.collection("weapons").get().await()
+            snapshot.documents.mapNotNull { doc ->
+                try {
+                    val name = doc.getString("name") ?: return@mapNotNull null
+                    val index = doc.getString("key") ?: return@mapNotNull null
+                    val damageDice = doc.getString("damage_dice") ?: ""
+                    val damageTypeMap = doc.get("damage_type") as? Map<String, Any>
+                    val damageType = damageTypeMap?.get("name") as? String ?: ""
+                    val isSimple = doc.getBoolean("is_simple") ?: false
+                    val weaponType = if (isSimple) WeaponType.Simple else WeaponType.Martial
+                    
+                    val propertiesList = doc.get("properties") as? List<Map<String, Any>> ?: emptyList()
+                    val properties = propertiesList.mapNotNull { propMap ->
+                        val propInner = propMap["property"] as? Map<String, Any>
+                        val propName = propInner?.get("name") as? String
+                        when (propName) {
+                            "Finesse" -> WeaponProperty.FINESSE
+                            "Light" -> WeaponProperty.LIGHT
+                            "Heavy" -> WeaponProperty.HEAVY
+                            "Reach" -> WeaponProperty.REACH
+                            "Two-Handed" -> WeaponProperty.TWO_HANDED
+                            "Versatile" -> WeaponProperty.VERSATILE
+                            "Thrown" -> WeaponProperty.THROWN
+                            "Loading" -> WeaponProperty.LOADING
+                            "Ammunition" -> WeaponProperty.AMMUNITION
+                            else -> null
+                        }
+                    }
+                    val reach = if (properties.contains(WeaponProperty.REACH)) 10 else 5
+                    val imgUri = doc.getString("imgUri")
+
+                    Weapon(name, index, damageDice, damageType, weaponType, properties, reach, imgUri)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error parsing weapon", e)
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching weapons", e)
+            emptyList()
+        }
+    }
+
+    suspend fun getArmor(): List<Armor> {
+        return try {
+            val snapshot = firestore.collection("armor").get().await()
+            snapshot.documents.mapNotNull { doc ->
+                try {
+                    val name = doc.getString("name") ?: return@mapNotNull null
+                    val index = doc.getString("key") ?: return@mapNotNull null
+                    val baseAc = doc.getLong("ac_base")?.toInt() ?: 10
+                    val category = doc.getString("category") ?: "light"
+                    val armorType = when (category.lowercase()) {
+                        "light" -> ArmorType.Light
+                        "medium" -> ArmorType.Medium
+                        "heavy" -> ArmorType.Heavy
+                        "shield" -> ArmorType.Shields
+                        else -> ArmorType.Light
+                    }
+                    val strengthRequired = doc.getLong("strength_score_required")?.toInt() ?: 0
+                    val stealthDisadvantage = doc.getBoolean("grants_stealth_disadvantage") ?: false
+                    val imgUri = doc.getString("imgUri")
+
+                    Armor(name, index, baseAc, armorType, strengthRequired, stealthDisadvantage, imgUri)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error parsing armor", e)
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching armor", e)
+            emptyList()
+        }
+    }
 
     // ========================= Spells =========================
 

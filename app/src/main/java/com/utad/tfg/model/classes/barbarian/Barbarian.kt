@@ -9,6 +9,7 @@ import com.utad.tfg.model.classes.*
 class Barbarian(override var level: Int = 1) : Class {
     override val className: String = "Barbarian"
     override val classIndex: String = "barbarian"
+    override val imgUri: String? = ""
     override val primaryAbility: Ability = Ability.Strength
     override val savingThrows: List<Ability> = listOf(Ability.Strength, Ability.Constitution)
     override val armorProficiencies: List<ArmorType> = listOf(ArmorType.Light, ArmorType.Medium, ArmorType.Shields)

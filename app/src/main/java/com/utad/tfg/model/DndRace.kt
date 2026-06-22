@@ -1,6 +1,6 @@
 package com.utad.tfg.model
 
-sealed class DndRace(val raceName: String, val subraceName: String? = null) {
+sealed class DndRace(val raceName: String, val subraceName: String? = null, open val imgUri: String? = "") {
     // Core Races
     sealed class Human(subrace: String? = null) : DndRace("Human", subrace) {
         data object Standard : Human()

@@ -6,7 +6,8 @@ import com.utad.tfg.model.WeaponType
 
 sealed class Equipment(
     val name: String,
-    val index: String
+    val index: String,
+    open val imgUri: String? = null
 )
 
 data class Weapon(
@@ -16,8 +17,9 @@ data class Weapon(
     val damageType: String,
     val weaponType: WeaponType,
     val properties: List<WeaponProperty>,
-    val reach: Int = 5
-) : Equipment(weaponName, weaponIndex) {
+    val reach: Int = 5,
+    override val imgUri: String? = null
+) : Equipment(weaponName, weaponIndex, imgUri) {
     fun isProficient(proficiencies: List<WeaponType>): Boolean {
         return proficiencies.contains(weaponType)
     }
@@ -41,8 +43,9 @@ data class Armor(
     val baseAc: Int,
     val armorType: ArmorType,
     val strengthRequired: Int = 0,
-    val stealthDisadvantage: Boolean = false
-) : Equipment(armorName, armorIndex) {
+    val stealthDisadvantage: Boolean = false,
+    override val imgUri: String? = null
+) : Equipment(armorName, armorIndex, imgUri) {
     fun isProficient(proficiencies: List<ArmorType>): Boolean {
         return proficiencies.contains(armorType)
     }

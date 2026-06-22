@@ -9,6 +9,7 @@ import com.utad.tfg.model.classes.*
 class Ranger(override var level: Int = 1) : Class {
     override val className: String = "Ranger"
     override val classIndex: String = "ranger"
+    override val imgUri: String? = ""
     override val primaryAbility: Ability = Ability.Dexterity
     override val savingThrows: List<Ability> = listOf(Ability.Strength, Ability.Dexterity)
     override val armorProficiencies: List<ArmorType> = listOf(ArmorType.Light, ArmorType.Medium, ArmorType.Shields)

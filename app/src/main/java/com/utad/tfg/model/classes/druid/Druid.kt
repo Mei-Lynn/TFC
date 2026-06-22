@@ -9,6 +9,7 @@ import com.utad.tfg.model.classes.*
 class Druid(override var level: Int = 1) : Class {
     override val className: String = "Druid"
     override val classIndex: String = "druid"
+    override val imgUri: String? = ""
     override val primaryAbility: Ability = Ability.Wisdom
     override val savingThrows: List<Ability> = listOf(Ability.Intelligence, Ability.Wisdom)
     override val armorProficiencies: List<ArmorType> = listOf(ArmorType.Light, ArmorType.Medium, ArmorType.Shields)

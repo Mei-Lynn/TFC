@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,7 +41,6 @@ import com.utad.tfg.model.DndRace
 import com.utad.tfg.model.classes.Subclass
 import com.utad.tfg.model.equipment.Armor
 import com.utad.tfg.model.equipment.Equipment
-import com.utad.tfg.model.equipment.EquipmentRegistry
 import com.utad.tfg.model.equipment.Weapon
 import com.utad.tfg.model.equipment.WeaponProperty
 import com.utad.tfg.model.classes.Class as DndClass
@@ -65,6 +65,8 @@ fun CharCreateScreen(
     val subraces by vm.subraces.collectAsState()
     val subclasses by vm.subclasses.collectAsState()
     val filteredSpells by vm.filteredSpells.collectAsState()
+    val weapons by vm.weapons.collectAsState()
+    val armors by vm.armors.collectAsState()
     val context = LocalContext.current
 
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
@@ -84,6 +86,8 @@ fun CharCreateScreen(
         subraces = subraces,
         subclasses = subclasses,
         filteredSpells = filteredSpells,
+        weapons = weapons,
+        armors = armors,
         imageUri = selectedImageUri,
         onPickImage = {
             imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
@@ -104,6 +108,8 @@ fun CharCreateContent(
     subraces: List<DndRace>,
     subclasses: List<Subclass>,
     filteredSpells: List<SpellEntity>,
+    weapons: List<Weapon>,
+    armors: List<Armor>,
     imageUri: Uri? = null,
     onPickImage: () -> Unit = {},
     onRaceSelected: (String) -> Unit,
@@ -199,6 +205,7 @@ fun CharCreateContent(
                 it?.let { onRaceSelected(it.raceName) }
             }
         )
+        ItemImageSlot(selectedRace?.imgUri)
 
         // Subraza
         if (subraces.isNotEmpty()) {
@@ -209,6 +216,7 @@ fun CharCreateContent(
                 optionName = { it.subraceName ?: it.raceName },
                 onOptionSelected = { selectedSubrace = it }
             )
+            ItemImageSlot(selectedSubrace?.imgUri)
         }
 
         // Clase
@@ -225,6 +233,7 @@ fun CharCreateContent(
                 it?.let { onClassSelected(it.classIndex) }
             }
         )
+        ItemImageSlot(selectedClass?.imgUri)
 
         // Subclase
         if (subclasses.isNotEmpty() && selectedClass?.subclassProgression?.minOrNull() == 1) {
@@ -242,17 +251,18 @@ fun CharCreateContent(
         
         DropdownSelector(
             label = stringResource(R.string.main_hand),
-            options = EquipmentRegistry.weapons,
+            options = weapons,
             selectedOption = selectedMainHand,
             optionName = { it.weaponName },
             onOptionSelected = { selectedMainHand = it }
         )
+        ItemImageSlot(selectedMainHand?.imgUri)
 
         if (selectedMainHand?.properties?.contains(WeaponProperty.TWO_HANDED) == false) {
-            val offHandOptions = remember(selectedMainHand) {
-                val weapons = EquipmentRegistry.weapons.filter { it.properties.contains(WeaponProperty.LIGHT) }
-                val shields = EquipmentRegistry.armors.filter { it.armorType == ArmorType.Shields }
-                weapons + shields
+            val offHandOptions = remember(selectedMainHand, weapons, armors) {
+                val lightWeapons = weapons.filter { it.properties.contains(WeaponProperty.LIGHT) }
+                val shields = armors.filter { it.armorType == ArmorType.Shields }
+                lightWeapons + shields
             }
 
             DropdownSelector(
@@ -268,15 +278,17 @@ fun CharCreateContent(
                 },
                 onOptionSelected = { selectedOffHand = it }
             )
+            ItemImageSlot(selectedOffHand?.imgUri)
         }
 
         DropdownSelector(
             label = stringResource(R.string.armor),
-            options = EquipmentRegistry.armors.filter { armor -> armor.armorType != ArmorType.Shields },
+            options = armors.filter { armor -> armor.armorType != ArmorType.Shields },
             selectedOption = selectedArmor,
             optionName = { it.armorName },
             onOptionSelected = { selectedArmor = it }
         )
+        ItemImageSlot(selectedArmor?.imgUri)
 
         //Distribución de puntos de habilidad
         Text(stringResource(R.string.ability_scores_points, remainingPoints, totalPoints), style = MaterialTheme.typography.titleLarge)
@@ -542,6 +554,43 @@ fun getNextPointCost(currentScore: Int): Int {
     }
 }
 
+@Composable
+fun ItemImageSlot(imgUri: String?) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp)
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(1.dp, MaterialTheme.colorScheme.outline, androidx.compose.foundation.shape.RoundedCornerShape(8.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        if (!imgUri.isNullOrEmpty()) {
+            AsyncImage(
+                model = imgUri,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    imageVector = Icons.Default.Image,
+                    contentDescription = "No image",
+                    modifier = Modifier.size(32.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.image_placeholder),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
+        }
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun CharCreatePreview() {
@@ -552,6 +601,8 @@ fun CharCreatePreview() {
             subraces = emptyList(),
             subclasses = emptyList(),
             filteredSpells = emptyList(),
+            weapons = emptyList(),
+            armors = emptyList(),
             onRaceSelected = {},
             onClassSelected = {},
             onSaveCharacter = { _, _, _, _, _, _, _, _, _, _, _ -> }
