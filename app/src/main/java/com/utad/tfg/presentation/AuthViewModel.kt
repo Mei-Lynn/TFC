@@ -49,6 +49,12 @@ class AuthViewModel @Inject constructor(
     val currentUser: StateFlow<FirebaseUser?> = authRepository.currentUser
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    val isAdmin: StateFlow<Boolean> = authRepository.currentUser
+        .map { user ->
+            if (user != null) authRepository.isCurrentUserAdmin() else false
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     fun loginWithEmail(email: String, password: String) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading

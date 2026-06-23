@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -59,21 +60,29 @@ fun RootScreen() {
             if (currentUser == null) {
                 LoginScreen(authViewModel = authViewModel)
             } else {
-                MainNavigation()
+                MainNavigation(authViewModel = authViewModel)
             }
         }
     }
 }
 
 @Composable
-fun MainNavigation() {
+fun MainNavigation(authViewModel: AuthViewModel) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    val items = listOf("Characters", /*"Campaigns",*/ "Bestiary")
-    val routes = listOf("charSelect", /*"campaigns",*/ "bestiary")
-    val icons = listOf(Icons.Default.Person, /*Icons.Default.Home,*/ Icons.AutoMirrored.Filled.List)
+    val isAdmin by authViewModel.isAdmin.collectAsStateWithLifecycle()
+
+    val items = mutableListOf("Characters", /*"Campaigns",*/ "Bestiary")
+    val routes = mutableListOf("charSelect", /*"campaigns",*/ "bestiary")
+    val icons = mutableListOf(Icons.Default.Person, /*Icons.Default.Home,*/ Icons.AutoMirrored.Filled.List)
+
+    if (isAdmin) {
+        items.add("Admin")
+        routes.add("admin")
+        icons.add(Icons.Default.Settings)
+    }
 
     Scaffold(
         modifier = Modifier.background(MaterialTheme.colorScheme.background),
@@ -116,6 +125,7 @@ fun MainNavigation() {
                 onLevelUp = { navController.navigate("levelUp") }
             ) }
             composable("levelUp") { LevelUpScreen(onComplete = { navController.popBackStack() }) }
+            composable("admin") { com.utad.tfg.presentation.admin.AdminScreen() }
         }
     }
 }

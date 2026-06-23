@@ -27,6 +27,17 @@ class AuthRepository @Inject constructor(
 
     val isLoggedIn: Boolean get() = firebaseAuth.currentUser != null
 
+    /** Checks if the current user has the 'isAdmin' custom claim. */
+    suspend fun isCurrentUserAdmin(): Boolean {
+        val user = firebaseAuth.currentUser ?: return false
+        return try {
+            val tokenResult = user.getIdToken(false).await()
+            tokenResult.claims["isAdmin"] as? Boolean ?: false
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     /**
      * Register a new user with email and password.
      * Returns the [FirebaseUser] on success or throws on failure.
