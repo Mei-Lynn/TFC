@@ -49,5 +49,8 @@
     <string name="swap">Intercambiar</string>
     <string name="cancel_swap">Cancelar Intercambio</string>
     <string name="bestiary_searchbar">Busca monstruos...</string>
+    <string name="image_placeholder">Sin imagen</string>
+    <string name="delete">Borrar</string>
+    <string name="delete_message">Los personajes no se pueden recuperar una vez eliminados. ¿Quieres continuar?</string>
 </resources>
 

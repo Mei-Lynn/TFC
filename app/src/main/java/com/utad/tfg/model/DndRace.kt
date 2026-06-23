@@ -2,10 +2,7 @@ package com.utad.tfg.model
 
 sealed class DndRace(val raceName: String, val subraceName: String? = null, open val imgUri: String? = "") {
     // Core Races
-    sealed class Human(subrace: String? = null) : DndRace("Human", subrace) {
-        data object Standard : Human()
-        data object Variant : Human("Variant")
-    }
+    data object Human: DndRace("Human", null, "")
 
     sealed class Elf(subrace: String) : DndRace("Elf", subrace) {
         data object High : Elf("High Elf")
@@ -51,7 +48,7 @@ sealed class DndRace(val raceName: String, val subraceName: String? = null, open
 
     data object HalfOrc : DndRace("Half-Orc")
 
-    sealed class Tiefling(subrace: String? = null) : DndRace("Tiefling", subrace) {
+    sealed class Tiefling(subrace: String? = null) : DndRace("Tiefling", subrace, "") {
         // Player's Handbook
         data object Asmodeus : Tiefling("Asmodeus")
         // Sword Coast Adventurer's Guide

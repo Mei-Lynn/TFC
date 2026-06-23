@@ -26,6 +26,7 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -60,6 +61,7 @@ import coil3.compose.AsyncImage
 import com.utad.tfg.local.entities.Character
 import com.utad.tfg.model.CharState
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.window.Dialog
 import com.utad.tfg.R
 
 @Composable
@@ -70,11 +72,12 @@ fun CharSelectScreen(onAddCharacter: () -> Unit, onCharacterClick: () -> Unit) {
     val characters by vm.localCharacters.collectAsStateWithLifecycle()
     val selectedIDs = remember { mutableStateListOf<Long>() }
     val syncState by vm.charSyncState.collectAsStateWithLifecycle()
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = { CharSelectTopbar { auth.signOut() } },
         floatingActionButton = { 
-            if (selectMode) RemoveCharacterButton(onClick = {vm.deleteCharactersByID(selectedIDs, {selectedIDs.clear()}); selectMode = false})
+            if (selectMode) RemoveCharacterButton(onClick = {showDeleteDialog = true})
             else AddCharacterButton(onClick = onAddCharacter) 
         },
     ) { paddingValues ->
@@ -112,7 +115,9 @@ fun CharSelectScreen(onAddCharacter: () -> Unit, onCharacterClick: () -> Unit) {
             }
         }
 
-
+        if (showDeleteDialog) {
+            DeleteDialog({showDeleteDialog = false},  {vm.deleteCharactersByID(selectedIDs, {selectedIDs.clear()}); selectMode = false})
+        }
     }
 }
 
@@ -280,5 +285,38 @@ fun RemoveCharacterButton(onClick: () -> Unit) {
         shape = CircleShape
     ) {
         Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.remove_character))
+    }
+}
+
+@Composable
+fun DeleteDialog(onDissmiss: () -> Unit, onAccept: () -> Unit) {
+    Dialog(onDissmiss) {
+
+        Column(Modifier
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+            .padding(8.dp)
+        ) {
+
+            Text(stringResource(R.string.delete_message))
+
+            Spacer(Modifier.size(4.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = onDissmiss) {
+                    Text(stringResource(R.string.cancel))
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(onClick = {
+                    onAccept()
+                    onDissmiss()
+                }) {
+                    Text(stringResource(R.string.delete))
+                }
+            }
+        }
     }
 }

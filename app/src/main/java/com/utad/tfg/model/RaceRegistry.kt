@@ -2,7 +2,7 @@ package com.utad.tfg.model
 
 object RaceRegistry {
     val races: List<DndRace> = listOf(
-        DndRace.Human.Standard,
+        DndRace.Human,
         DndRace.Elf.High,
         DndRace.Dwarf.Hill,
         DndRace.Halfling.Lightfoot,
@@ -25,7 +25,6 @@ object RaceRegistry {
 
     fun getSubraces(raceName: String): List<DndRace> {
         return when (raceName) {
-            "Human" -> listOf(DndRace.Human.Standard, DndRace.Human.Variant)
             "Elf" -> listOf(DndRace.Elf.High, DndRace.Elf.Wood, DndRace.Elf.Drow, DndRace.Elf.Eladrin, DndRace.Elf.Sea, DndRace.Elf.ShadarKai)
             "Dwarf" -> listOf(DndRace.Dwarf.Hill, DndRace.Dwarf.Mountain, DndRace.Dwarf.Duergar)
             "Halfling" -> listOf(DndRace.Halfling.Lightfoot, DndRace.Halfling.Stout, DndRace.Halfling.Ghostwise)

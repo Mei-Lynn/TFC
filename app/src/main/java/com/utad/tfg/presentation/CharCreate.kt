@@ -15,6 +15,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -51,6 +52,9 @@ import com.utad.tfg.local.entities.SpellEntity
 import com.utad.tfg.model.classes.barbarian.Barbarian
 import com.utad.tfg.ui.theme.TFGTheme
 import androidx.compose.ui.res.stringResource
+import androidx.core.net.toUri
+import coil3.request.ImageRequest
+import coil3.request.ImageResult
 import com.utad.tfg.R
 import java.io.File
 import java.util.UUID
@@ -216,7 +220,7 @@ fun CharCreateContent(
                 optionName = { it.subraceName ?: it.raceName },
                 onOptionSelected = { selectedSubrace = it }
             )
-            ItemImageSlot(selectedSubrace?.imgUri)
+            //ItemImageSlot(selectedSubrace?.imgUri)
         }
 
         // Clase
@@ -560,7 +564,7 @@ fun ItemImageSlot(imgUri: String?) {
         modifier = Modifier
             .fillMaxWidth()
             .height(120.dp)
-            .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .border(1.dp, MaterialTheme.colorScheme.outline, androidx.compose.foundation.shape.RoundedCornerShape(8.dp)),
         contentAlignment = Alignment.Center
@@ -570,7 +574,7 @@ fun ItemImageSlot(imgUri: String?) {
                 model = imgUri,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Fit
             )
         } else {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -596,7 +600,7 @@ fun ItemImageSlot(imgUri: String?) {
 fun CharCreatePreview() {
     TFGTheme {
         CharCreateContent(
-            races = listOf(DndRace.Human.Standard),
+            races = listOf(DndRace.Human),
             classes = listOf(Barbarian()),
             subraces = emptyList(),
             subclasses = emptyList(),

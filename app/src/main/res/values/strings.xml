@@ -50,4 +50,6 @@
     <string name="cancel_swap">Cancel Swap</string>
     <string name="bestiary_searchbar">Search monsters...</string>
     <string name="image_placeholder">Image placeholder</string>
+    <string name="delete">Delete</string>
+    <string name="delete_message">You wont be able to recover any character after deletion. Are you sure?</string>
 </resources>
