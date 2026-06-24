@@ -231,14 +231,14 @@ fun OnlineMonsterCard(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            IconButton(
+            /*IconButton(
                 onClick = if (isDownloaded) onDeleteClick else onDownloadClick,
             ) {
                 Icon(
                     imageVector = if (isDownloaded) Icons.Default.Delete else Icons.Default.Download,
                     contentDescription = stringResource(R.string.download_delete)
                 )
-            }
+            }*/
         }
     }
 }
