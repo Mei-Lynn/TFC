@@ -1,5 +1,7 @@
 package com.utad.tfg.presentation
 
+import android.app.Dialog
+import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -8,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -71,7 +74,7 @@ fun CharDetailsScreen(
 
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri: android.net.Uri? ->
+    ) { uri: Uri? ->
         uri?.let {
             val internalUri = copyImageToInternalStorage(context, it)
             character?.let { char ->
@@ -437,8 +440,21 @@ fun EquipmentSection(char: Character, weapons: List<Weapon>, armors: List<Armor>
     val offHand = weapons.find { it.index == char.offHandIndex } ?: armors.find { it.index == char.offHandIndex }
     val armor = armors.find { it.index == char.armorIndex }
 
+    var showEquipmentEditDialog by remember {mutableStateOf(false)}
+
     Column {
-        Text(stringResource(R.string.equipment), style = MaterialTheme.typography.titleMedium)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(stringResource(R.string.equipment), style = MaterialTheme.typography.titleMedium)
+            IconButton({
+                showEquipmentEditDialog = true
+            }
+            ) {Icon(Icons.Default.Edit, "IconEdit", Modifier.size(20.dp)) }
+        }
+
         Spacer(modifier = Modifier.height(8.dp))
         
         EquipmentItem("Main Hand", mainHand?.weaponName ?: "Empty")
@@ -448,6 +464,16 @@ fun EquipmentSection(char: Character, weapons: List<Weapon>, armors: List<Armor>
             else -> if (mainHand!= null && mainHand.properties.contains(WeaponProperty.TWO_HANDED)) "Two-handed" else "Empty"
         })
         EquipmentItem("Armor", armor?.armorName ?: "Unarmored")
+
+        if (showEquipmentEditDialog) {
+            EquipmentEditDialog(
+                char,
+                { showEquipmentEditDialog = false },
+                selectedMainHand = mainHand,
+                selectedOffHand = offHand,
+                selectedArmor = armor
+            )
+        }
     }
 }
 
@@ -456,6 +482,62 @@ fun EquipmentItem(label: String, name: String) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
         Text(name, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+fun EquipmentEditDialog(char: Character, onDissmiss: () -> Unit, selectedMainHand: Weapon?, selectedOffHand: Equipment?, selectedArmor: Armor?) {
+    val vm = hiltViewModel<MainViewModel>(LocalContext.current as ComponentActivity)
+
+    val weapons by vm.weapons.collectAsState()
+    val armors by vm.armors.collectAsState()
+
+    var currentMainHand by remember { mutableStateOf(selectedMainHand) }
+    var currentOffHand by remember { mutableStateOf(selectedOffHand) }
+    var currentArmor by remember { mutableStateOf(selectedArmor) }
+
+    Dialog(onDissmiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                EquipmentEditor(
+                    weaponsSource = weapons,
+                    selectedMainHand = currentMainHand,
+                    onMainHandChange = { currentMainHand = it; if (currentMainHand?.properties?.contains(
+                            WeaponProperty.LIGHT) == false) currentOffHand = null },
+                    armorsSource = armors,
+                    selectedOffHand = currentOffHand,
+                    onOffHandChange = { currentOffHand = it },
+                    selectedArmor = currentArmor,
+                    onArmorChange = { currentArmor = it }
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDissmiss) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(onClick = {
+                        vm.updateCharacterEquipment(char, currentMainHand, currentOffHand, currentArmor)
+                        onDissmiss()
+                    }) {
+                        Text(stringResource(R.string.save))
+                    }
+                }
+            }
+        }
     }
 }
 

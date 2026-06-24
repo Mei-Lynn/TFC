@@ -25,6 +25,7 @@ import com.utad.tfg.remote.SpellRepository
 import com.utad.tfg.remote.toEnemy
 import com.utad.tfg.model.equipment.Weapon
 import com.utad.tfg.model.equipment.Armor
+import com.utad.tfg.model.equipment.Equipment
 import com.utad.tfg.security.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -227,9 +228,7 @@ class MainViewModel @Inject constructor(
                 }
             }
             val updatedChar = character.copy(imgUri = imgUri)
-            characterDao.updateCharacter(updatedChar)
-            firestoreRepository.updateCharacterRemote(updatedChar)
-            _selectedCharacter.value = updatedChar
+            updateCharacter(updatedChar)
         }
     }
 
@@ -284,12 +283,30 @@ class MainViewModel @Inject constructor(
                 cantrips = newCantrips,
                 preparedSpells = newPreparedSpells
             )
-            characterDao.updateCharacter(updatedChar)
-            firestoreRepository.updateCharacterRemote(updatedChar)
-            _selectedCharacter.value = updatedChar
+            updateCharacter(updatedChar)
             loadSelectedCharacterSpells()
         }
     }
+
+    fun updateCharacterEquipment(character: Character, mainHand: Weapon?, offHand: Equipment?, armor: Armor?) {
+        viewModelScope.launch {
+            val updatedChar = character.copy(
+                mainHandIndex = mainHand?.index,
+                offHandIndex = offHand?.index,
+                armorIndex = armor?.index
+            )
+            updateCharacter(updatedChar)
+        }
+    }
+
+    private fun updateCharacter(updatedCharacter: Character) {
+        viewModelScope.launch {
+            characterDao.updateCharacter(updatedCharacter)
+            firestoreRepository.updateCharacterRemote(updatedCharacter)
+            _selectedCharacter.value = updatedCharacter
+        }
+    }
+
 
     //========================= Local Data ==========================
     fun getSubraces(raceName: String) {

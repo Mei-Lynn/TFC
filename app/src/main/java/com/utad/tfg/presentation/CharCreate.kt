@@ -52,9 +52,6 @@ import com.utad.tfg.local.entities.SpellEntity
 import com.utad.tfg.model.classes.barbarian.Barbarian
 import com.utad.tfg.ui.theme.TFGTheme
 import androidx.compose.ui.res.stringResource
-import androidx.core.net.toUri
-import coil3.request.ImageRequest
-import coil3.request.ImageResult
 import com.utad.tfg.R
 import java.io.File
 import java.util.UUID
@@ -250,49 +247,16 @@ fun CharCreateContent(
             )
         }
 
-        // Equipamiento
-        Text(stringResource(R.string.equipment), style = MaterialTheme.typography.titleLarge)
-        
-        DropdownSelector(
-            label = stringResource(R.string.main_hand),
-            options = weapons,
-            selectedOption = selectedMainHand,
-            optionName = { it.weaponName },
-            onOptionSelected = { selectedMainHand = it }
+        EquipmentEditor(
+            weaponsSource = weapons,
+            selectedMainHand = selectedMainHand,
+            onMainHandChange = { selectedMainHand = it },
+            armorsSource = armors,
+            selectedOffHand = selectedOffHand,
+            onOffHandChange = { selectedOffHand = it },
+            selectedArmor = selectedArmor,
+            onArmorChange = { selectedArmor = it }
         )
-        ItemImageSlot(selectedMainHand?.imgUri)
-
-        if (selectedMainHand?.properties?.contains(WeaponProperty.TWO_HANDED) == false) {
-            val offHandOptions = remember(selectedMainHand, weapons, armors) {
-                val lightWeapons = weapons.filter { it.properties.contains(WeaponProperty.LIGHT) }
-                val shields = armors.filter { it.armorType == ArmorType.Shields }
-                lightWeapons + shields
-            }
-
-            DropdownSelector(
-                label = stringResource(R.string.off_hand),
-                options = offHandOptions,
-                selectedOption = selectedOffHand,
-                optionName = {
-                    when (it) {
-                        is Weapon -> it.weaponName
-                        is Armor -> it.armorName
-                        else -> "Unknown"
-                    }
-                },
-                onOptionSelected = { selectedOffHand = it }
-            )
-            ItemImageSlot(selectedOffHand?.imgUri)
-        }
-
-        DropdownSelector(
-            label = stringResource(R.string.armor),
-            options = armors.filter { armor -> armor.armorType != ArmorType.Shields },
-            selectedOption = selectedArmor,
-            optionName = { it.armorName },
-            onOptionSelected = { selectedArmor = it }
-        )
-        ItemImageSlot(selectedArmor?.imgUri)
 
         //Distribución de puntos de habilidad
         Text(stringResource(R.string.ability_scores_points, remainingPoints, totalPoints), style = MaterialTheme.typography.titleLarge)
@@ -409,6 +373,66 @@ fun CharCreateContent(
             Text(stringResource(R.string.create_character))
         }
     }
+}
+@Composable
+fun EquipmentEditor(
+    weaponsSource: List<Weapon>,
+    selectedMainHand: Weapon?,
+    onMainHandChange: (Weapon?) -> Unit,
+    armorsSource: List<Armor>,
+    selectedOffHand: Equipment?,
+    onOffHandChange: (Equipment?) -> Unit,
+    selectedArmor: Armor?,
+    onArmorChange: (Armor?) -> Unit
+) {
+    Text(stringResource(R.string.equipment), style = MaterialTheme.typography.titleLarge)
+
+    val weapons : MutableList<Weapon?> = weaponsSource.toMutableList()
+    weapons.add(null)
+
+    val armors : MutableList<Armor?> = armorsSource.toMutableList()
+    armors.add(null)
+
+    DropdownSelector(
+        label = stringResource(R.string.main_hand),
+        options = weapons,
+        selectedOption = selectedMainHand,
+        optionName = { it?.weaponName ?: "Nothing" },
+        onOptionSelected = { onMainHandChange(it) }
+    )
+    ItemImageSlot(selectedMainHand?.imgUri)
+
+    if (selectedMainHand?.properties?.contains(WeaponProperty.TWO_HANDED) == false) {
+        val offHandOptions = remember(selectedMainHand, weapons, armors) {
+            val lightWeapons = weapons.filter { it?.properties?.contains(WeaponProperty.LIGHT) == true }
+            val shields = armors.filter { it?.armorType == ArmorType.Shields }
+            lightWeapons + shields
+        }
+
+        DropdownSelector(
+            label = stringResource(R.string.off_hand),
+            options = offHandOptions,
+            selectedOption = selectedOffHand,
+            optionName = {
+                when (it) {
+                    is Weapon -> it.weaponName
+                    is Armor -> it.armorName
+                    else -> "Unknown"
+                }
+            },
+            onOptionSelected = { onOffHandChange(it) }
+        )
+        ItemImageSlot(selectedOffHand?.imgUri)
+    }
+
+    DropdownSelector(
+        label = stringResource(R.string.armor),
+        options = armors.filter { armor -> armor?.armorType != ArmorType.Shields },
+        selectedOption = selectedArmor,
+        optionName = { it?.armorName ?: "Nothing" },
+        onOptionSelected = { onArmorChange(it) }
+    )
+    ItemImageSlot(selectedArmor?.imgUri)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
