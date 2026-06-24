@@ -1,10 +1,15 @@
 package com.utad.tfg.presentation.admin
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import coil3.compose.AsyncImage
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -20,13 +25,17 @@ import com.google.gson.reflect.TypeToken
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AdminScreen(viewModel: AdminViewModel = hiltViewModel()) {
-    val selectedCollection by viewModel.selectedCollection.collectAsStateWithLifecycle()
-    val documents by viewModel.documents.collectAsStateWithLifecycle()
-    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+fun AdminScreen(vm: AdminViewModel = hiltViewModel()) {
+    val selectedCollection by vm.selectedCollection.collectAsStateWithLifecycle()
+    val documents by vm.documents.collectAsStateWithLifecycle()
+    val isLoading by vm.isLoading.collectAsStateWithLifecycle()
 
     var editingDocument by remember { mutableStateOf<Map<String, Any>?>(null) }
     var isEditorOpen by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        vm.selectCollection("weapons")
+    }
 
     Scaffold(
         floatingActionButton = {
@@ -34,7 +43,9 @@ fun AdminScreen(viewModel: AdminViewModel = hiltViewModel()) {
                 FloatingActionButton(onClick = {
                     editingDocument = emptyMap()
                     isEditorOpen = true
-                }) {
+                },
+                    shape = CircleShape
+                ) {
                     Icon(Icons.Default.Add, contentDescription = "Add Document")
                 }
             }
@@ -46,10 +57,10 @@ fun AdminScreen(viewModel: AdminViewModel = hiltViewModel()) {
                 modifier = Modifier.fillMaxWidth().padding(8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(viewModel.collections) { collection ->
+                items(vm.collections) { collection ->
                     FilterChip(
                         selected = collection == selectedCollection,
-                        onClick = { viewModel.selectCollection(collection) },
+                        onClick = { vm.selectCollection(collection) },
                         label = { Text(collection.replaceFirstChar { it.uppercase() }) }
                     )
                 }
@@ -88,11 +99,11 @@ fun AdminScreen(viewModel: AdminViewModel = hiltViewModel()) {
                 document = editingDocument!!,
                 onDismiss = { isEditorOpen = false },
                 onSave = { docId, data ->
-                    viewModel.saveDocument(docId, data)
+                    vm.saveDocument(docId, data)
                     isEditorOpen = false
                 },
                 onDelete = { docId ->
-                    viewModel.deleteDocument(docId)
+                    vm.deleteDocument(docId)
                     isEditorOpen = false
                 }
             )
@@ -111,13 +122,25 @@ fun JsonEditorDialog(
     val mapType = object : TypeToken<Map<String, Any>>() {}.type
 
     val docId = document["_id"] as? String
+    var imageUri by remember { mutableStateOf(document["imgUri"] as? String) }
     
-    // Remove _id from the editable JSON to prevent user from modifying the document ID directly inside the JSON
-    val editableMap = document.toMutableMap().apply { remove("_id") }
+    // Remove _id and imgUri from the editable JSON
+    val editableMap = document.toMutableMap().apply { 
+        remove("_id") 
+        remove("imgUri")
+    }
     val initialJson = remember { gson.toJson(editableMap) }
     
     var jsonText by remember { mutableStateOf(if (initialJson == "null") "{}" else initialJson) }
     var parseError by remember { mutableStateOf<String?>(null) }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            imageUri = uri.toString()
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -127,6 +150,26 @@ fun JsonEditorDialog(
                 if (parseError != null) {
                     Text(text = parseError!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Image:")
+                    if (imageUri != null) {
+                        AsyncImage(
+                            model = imageUri,
+                            contentDescription = "Selected Image",
+                            modifier = Modifier.size(64.dp).clickable { launcher.launch("image/*") }
+                        )
+                    } else {
+                        Button(onClick = { launcher.launch("image/*") }) {
+                            Text("Select Image")
+                        }
+                    }
+                }
+
                 OutlinedTextField(
                     value = jsonText,
                     onValueChange = { 
@@ -145,7 +188,13 @@ fun JsonEditorDialog(
                     if(parsedData == null) {
                          onSave(docId, emptyMap())
                     } else {
-                         onSave(docId, parsedData)
+                         val finalData = parsedData.toMutableMap()
+                         if (imageUri != null) {
+                             finalData["imgUri"] = imageUri!!
+                         } else {
+                             finalData.remove("imgUri")
+                         }
+                         onSave(docId, finalData)
                     }
                 } catch (e: Exception) {
                     parseError = e.localizedMessage
