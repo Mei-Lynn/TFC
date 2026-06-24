@@ -42,6 +42,7 @@ import coil3.compose.AsyncImage
 import com.utad.tfg.local.entities.Character
 import com.utad.tfg.local.entities.SpellEntity
 import com.utad.tfg.model.Ability
+import com.utad.tfg.model.CombatAction
 import com.utad.tfg.model.classes.ClassFeature
 import com.utad.tfg.model.classes.ClassRegistry
 import com.utad.tfg.model.classes.ClassResource
@@ -182,6 +183,11 @@ fun CharDetailsScreen(
 
                 // Equipment
                 EquipmentSection(char, weapons, armors)
+
+                HorizontalDivider()
+
+                // Actions
+                ActionsSection(char, weapons)
 
                 HorizontalDivider()
 
@@ -536,6 +542,44 @@ fun EquipmentEditDialog(char: Character, onDissmiss: () -> Unit, selectedMainHan
                         Text(stringResource(R.string.save))
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun ActionsSection(char: Character, weapons: List<Weapon>) {
+    val mainHand = weapons.find { it.index == char.mainHandIndex }
+    val offHand = weapons.find { it.index == char.offHandIndex }
+    
+    val actions = mutableListOf<CombatAction.WeaponAttack>()
+    mainHand?.let { actions.add(it.toCombatAction(isOffHand = false)) }
+    offHand?.let { actions.add(it.toCombatAction(isOffHand = true)) }
+
+    if (actions.isNotEmpty()) {
+        Column {
+            Text(stringResource(R.string.actions), style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(8.dp))
+            actions.forEach { action ->
+                ActionItem(action)
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun ActionItem(action: CombatAction.WeaponAttack) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(action.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Range: ${action.range}", style = MaterialTheme.typography.bodySmall)
+                Text("Damage: ${action.damageDice} ${action.damageType}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
             }
         }
     }
