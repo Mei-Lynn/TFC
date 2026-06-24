@@ -67,8 +67,13 @@ fun CharDetailsScreen(
     val characterSpells by vm.fullSelectedCharacterSpells.collectAsStateWithLifecycle()
     val weapons by vm.weapons.collectAsStateWithLifecycle()
     val armors by vm.armors.collectAsStateWithLifecycle()
+    val localCharacters by vm.localCharacters.collectAsStateWithLifecycle()
     val context = LocalContext.current
     
+    val isReadOnly = character?.let { char ->
+        !localCharacters.any { it.id == char.id || (char.remoteId != null && it.remoteId == char.remoteId) }
+    } ?: true
+
     var showSpellDialog by remember { mutableStateOf(false) }
     var selectedSpellIndex by remember { mutableStateOf<String?>(null) }
     var showSpellChangeDialog by remember { mutableStateOf(false) }
@@ -115,12 +120,14 @@ fun CharDetailsScreen(
                     }
                 },
                 actions = {
-                    character?.let { char ->
-                        if (char.level < 20) {
-                            OutlinedButton(onClick = onLevelUp) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Text(stringResource(R.string.level_up))
-                                    Icon(Icons.Default.Upgrade, contentDescription = stringResource(R.string.level_up))
+                    if (!isReadOnly) {
+                        character?.let { char ->
+                            if (char.level < 20) {
+                                OutlinedButton(onClick = onLevelUp) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Text(stringResource(R.string.level_up))
+                                        Icon(Icons.Default.Upgrade, contentDescription = stringResource(R.string.level_up))
+                                    }
                                 }
                             }
                         }
@@ -145,6 +152,7 @@ fun CharDetailsScreen(
                 // Header Info
                 HeaderSection(
                     char = char,
+                    isReadOnly = isReadOnly,
                     onChangeImage = {
                         imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                     }
@@ -182,7 +190,7 @@ fun CharDetailsScreen(
                 HorizontalDivider()
 
                 // Equipment
-                EquipmentSection(char, weapons, armors)
+                EquipmentSection(char, weapons, armors, isReadOnly)
 
                 HorizontalDivider()
 
@@ -208,7 +216,7 @@ fun CharDetailsScreen(
                     )
                 }
 
-                if (canPrepareSpells) {
+                if (canPrepareSpells && !isReadOnly) {
                     Button(
                         onClick = { showSpellChangeDialog = true },
                         modifier = Modifier.fillMaxWidth()
@@ -226,7 +234,7 @@ fun CharDetailsScreen(
 }
 
 @Composable
-fun HeaderSection(char: Character, onChangeImage: () -> Unit = {}) {
+fun HeaderSection(char: Character, isReadOnly: Boolean = false, onChangeImage: () -> Unit = {}) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -238,7 +246,7 @@ fun HeaderSection(char: Character, onChangeImage: () -> Unit = {}) {
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                .clickable { onChangeImage() },
+                .then(if (!isReadOnly) Modifier.clickable { onChangeImage() } else Modifier),
             contentAlignment = Alignment.Center
         ) {
             if (char.imgUri != null) {
@@ -441,7 +449,7 @@ fun SlotItem(label: String, count: Int, color: Color) {
 }
 
 @Composable
-fun EquipmentSection(char: Character, weapons: List<Weapon>, armors: List<Armor>) {
+fun EquipmentSection(char: Character, weapons: List<Weapon>, armors: List<Armor>, isReadOnly: Boolean = false) {
     val mainHand = weapons.find { it.index == char.mainHandIndex }
     val offHand = weapons.find { it.index == char.offHandIndex } ?: armors.find { it.index == char.offHandIndex }
     val armor = armors.find { it.index == char.armorIndex }
@@ -455,10 +463,13 @@ fun EquipmentSection(char: Character, weapons: List<Weapon>, armors: List<Armor>
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(stringResource(R.string.equipment), style = MaterialTheme.typography.titleMedium)
-            IconButton({
-                showEquipmentEditDialog = true
+            if (!isReadOnly) {
+                IconButton({
+                    showEquipmentEditDialog = true
+                }) {
+                    Icon(Icons.Default.Edit, "IconEdit", Modifier.size(20.dp)) 
+                }
             }
-            ) {Icon(Icons.Default.Edit, "IconEdit", Modifier.size(20.dp)) }
         }
 
         Spacer(modifier = Modifier.height(8.dp))

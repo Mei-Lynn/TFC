@@ -8,5 +8,9 @@ data class Campaign(
     @PrimaryKey
     val id: String,
     val name: String,
-    val isDm: Boolean
+    val ownerId: String,
+    val playersIds: List<String>,
+    val charactersIds: List<String>,
+    val monstersIds: List<String>,
+    val imgUri: String? = null
 )

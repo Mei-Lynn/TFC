@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Add
 import com.utad.tfg.remote.MonsterAction
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -46,10 +47,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.material3.Divider
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,17 +76,27 @@ fun BestiaryScreen() {
     val localEnemies by vm.localEnemies.collectAsStateWithLifecycle()
     var searchString by remember { mutableStateOf("") }
     
-    var showDialog by remember { mutableStateOf(false) }
+    var showInfoDialog by remember { mutableStateOf(false) }
     var selectedIndex by remember { mutableStateOf("") }
+    
+    var showAddToCampaignDialog by remember { mutableStateOf(false) }
+    var selectedMonsterToAdd by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         vm.fetchMonsters()
     }
 
-    if (showDialog) {
+    if (showInfoDialog) {
         MonsterInfoDialog(
-            onDismiss = { showDialog = false; vm.emptyMonsterDetails() },
+            onDismiss = { showInfoDialog = false; vm.emptyMonsterDetails() },
             index = selectedIndex
+        )
+    }
+    
+    if (showAddToCampaignDialog) {
+        AddToCampaignDialog(
+            onDismiss = { showAddToCampaignDialog = false },
+            monsterIndex = selectedMonsterToAdd
         )
     }
 
@@ -123,11 +136,13 @@ fun BestiaryScreen() {
                     OnlineMonsterCard(
                         name = monster.name,
                         isDownloaded = isDownloaded,
-                        onDownloadClick = { vm.downloadMonster(monster.index) },
-                        onDeleteClick = { vm.deleteSavedMonster(monster.index) },
+                        onAddClick = {
+                            selectedMonsterToAdd = monster.index
+                            showAddToCampaignDialog = true
+                        },
                         onInfoClick = {
                             selectedIndex = it
-                            showDialog = true
+                            showInfoDialog = true
                         },
                         index = monster.index,
                     )
@@ -197,8 +212,7 @@ fun OnlineMonsterCard(
     name: String,
     index: String,
     isDownloaded: Boolean,
-    onDownloadClick: () -> Unit,
-    onDeleteClick: () -> Unit,
+    onAddClick: () -> Unit,
     onInfoClick: (index: String) -> Unit
 ) {
     Card(
@@ -231,14 +245,62 @@ fun OnlineMonsterCard(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            /*IconButton(
-                onClick = if (isDownloaded) onDeleteClick else onDownloadClick,
+            IconButton(
+                onClick = onAddClick,
             ) {
                 Icon(
-                    imageVector = if (isDownloaded) Icons.Default.Delete else Icons.Default.Download,
-                    contentDescription = stringResource(R.string.download_delete)
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add to Campaign"
                 )
-            }*/
+            }
+        }
+    }
+}
+
+@Composable
+fun AddToCampaignDialog(onDismiss: () -> Unit, monsterIndex: String) {
+    val vm = hiltViewModel<MainViewModel>(LocalContext.current as ComponentActivity)
+    val auth = hiltViewModel<AuthViewModel>(LocalContext.current as ComponentActivity)
+    val campaigns by vm.campaigns.collectAsStateWithLifecycle()
+    val currentUser by auth.currentUser.collectAsStateWithLifecycle()
+    
+    val myCampaigns = campaigns.filter { it.ownerId == currentUser?.uid }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(text = "Add to Campaign", style = MaterialTheme.typography.titleLarge)
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                if (myCampaigns.isEmpty()) {
+                    Text("You don't own any campaigns.", style = MaterialTheme.typography.bodyMedium)
+                } else {
+                    LazyColumn(modifier = Modifier.weight(1f, fill = false)) {
+                        items(myCampaigns) { campaign ->
+                            TextButton(
+                                onClick = {
+                                    vm.addMonsterToCampaign(campaign.id, monsterIndex)
+                                    onDismiss()
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(campaign.name)
+                            }
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                androidx.compose.material3.Button(onClick = onDismiss) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
         }
     }
 }

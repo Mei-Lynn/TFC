@@ -30,12 +30,16 @@ import javax.inject.Singleton
  * Repository for querying Firestore collections (spells, creatures).
  * Maps Firestore document schemas (Open5e format) to the app's models.
  */
+import com.utad.tfg.local.daos.CampaignDao
+import com.utad.tfg.local.entities.Campaign
+
 @Singleton
 class FirestoreRepository @Inject constructor(
     private val application: Application,
     private val firestore: FirebaseFirestore,
     private val authRepository: AuthRepository,
     private val characterDao: CharacterDao,
+    private val campaignDao: CampaignDao,
 ) {
     private val TAG = "FirestoreRepository"
 
@@ -612,6 +616,140 @@ class FirestoreRepository @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to decode Base64 image for $filename", e)
             null
+        }
+    }
+
+    // ========================= Campaigns =========================
+
+    suspend fun downloadCampaignsByUID() {
+        val user = authRepository.currentUser.first()
+        if (user != null) {
+            try {
+                // Fetch campaigns where user is owner
+                val ownerSnapshot = firestore.collection("campaigns")
+                    .whereEqualTo("ownerId", user.uid)
+                    .get()
+                    .await()
+                
+                // Fetch campaigns where user is in playersIds (requires array-contains)
+                val playerSnapshot = firestore.collection("campaigns")
+                    .whereArrayContains("playersIds", user.uid)
+                    .get()
+                    .await()
+
+                val allDocs = ownerSnapshot.documents + playerSnapshot.documents
+                val distinctDocs = allDocs.distinctBy { it.id }
+
+                distinctDocs.forEach { doc ->
+                    val data = doc.data ?: return@forEach
+                    val campaign = Campaign(
+                        id = doc.id,
+                        name = data["name"] as? String ?: "Unnamed Campaign",
+                        ownerId = data["ownerId"] as? String ?: "",
+                        playersIds = data["playersIds"] as? List<String> ?: emptyList(),
+                        charactersIds = data["charactersIds"] as? List<String> ?: emptyList(),
+                        monstersIds = data["monstersIds"] as? List<String> ?: emptyList(),
+                        imgUri = data["imgUri"] as? String
+                    )
+                    campaignDao.insertCampaign(campaign)
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Unexpected error in downloadCampaignsByUID", e)
+            }
+        }
+    }
+
+    suspend fun uploadCampaign(campaign: Campaign) {
+        val user = authRepository.currentUser.first()
+        if (user != null) {
+            try {
+                val campaignData = hashMapOf(
+                    "name" to campaign.name,
+                    "ownerId" to campaign.ownerId,
+                    "playersIds" to campaign.playersIds,
+                    "charactersIds" to campaign.charactersIds,
+                    "monstersIds" to campaign.monstersIds,
+                    "imgUri" to campaign.imgUri
+                )
+                val result = firestore.collection("campaigns").add(campaignData).await()
+                val updatedCampaign = campaign.copy(id = result.id)
+                campaignDao.insertCampaign(updatedCampaign)
+                Log.d(TAG, "Campaign uploaded successfully: ${campaign.name}")
+            } catch (e: Exception) {
+                Log.e(TAG, "Unexpected error in uploadCampaign", e)
+            }
+        }
+    }
+
+    suspend fun updateCampaignRemote(campaign: Campaign) {
+        val user = authRepository.currentUser.first()
+        if (user != null) {
+            try {
+                val campaignData = hashMapOf(
+                    "name" to campaign.name,
+                    "ownerId" to campaign.ownerId,
+                    "playersIds" to campaign.playersIds,
+                    "charactersIds" to campaign.charactersIds,
+                    "monstersIds" to campaign.monstersIds,
+                    "imgUri" to campaign.imgUri
+                )
+                firestore.collection("campaigns").document(campaign.id).set(campaignData).await()
+                Log.d(TAG, "Campaign updated successfully: ${campaign.name}")
+            } catch (e: Exception) {
+                Log.e(TAG, "Unexpected error in updateCampaignRemote", e)
+            }
+        }
+    }
+
+    suspend fun getCharactersByIds(ids: List<String>): List<Character> {
+        if (ids.isEmpty()) return emptyList()
+        return try {
+            val snapshot = firestore.collection("characters")
+                .whereIn(com.google.firebase.firestore.FieldPath.documentId(), ids)
+                .get()
+                .await()
+
+            snapshot.documents.mapNotNull { doc ->
+                val data = doc.data ?: return@mapNotNull null
+                val charState = when (data["state"] as? String) {
+                    "active" -> CharState.active
+                    "dead" -> CharState.dead
+                    "retired" -> CharState.retired
+                    else -> CharState.noCampaign
+                }
+
+                Character(
+                    remoteId = doc.id,
+                    campaignId = data["campaignId"] as? String,
+                    name = data["name"] as? String ?: "Unknown",
+                    raceIndex = data["raceIndex"] as? String ?: "",
+                    subraceIndex = data["subraceIndex"] as? String,
+                    classIndex = data["classIndex"] as? String ?: "",
+                    subclassIndex = data["subclassIndex"] as? String,
+                    level = (data["level"] as? Long)?.toInt() ?: 1,
+                    maxHp = (data["maxHp"] as? Long)?.toInt() ?: 10,
+                    currentHp = (data["currentHp"] as? Long)?.toInt() ?: 10,
+                    armorClass = (data["armorClass"] as? Long)?.toInt() ?: 10,
+                    initiative = (data["initiative"] as? Long)?.toInt() ?: 0,
+                    strength = (data["strength"] as? Long)?.toInt() ?: 10,
+                    dexterity = (data["dexterity"] as? Long)?.toInt() ?: 10,
+                    constitution = (data["constitution"] as? Long)?.toInt() ?: 10,
+                    intelligence = (data["intelligence"] as? Long)?.toInt() ?: 10,
+                    wisdom = (data["wisdom"] as? Long)?.toInt() ?: 10,
+                    charisma = (data["charisma"] as? Long)?.toInt() ?: 10,
+                    imgUri = data["imgUri"] as? String,
+                    state = charState,
+                    cantrips = data["cantrips"] as? List<String> ?: emptyList(),
+                    preparedSpells = data["preparedSpells"] as? List<String> ?: emptyList(),
+                    mainHandIndex = data["mainHandIndex"] as? String,
+                    offHandIndex = data["offHandIndex"] as? String,
+                    armorIndex = data["armorIndex"] as? String
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching characters by IDs", e)
+            emptyList()
         }
     }
 }

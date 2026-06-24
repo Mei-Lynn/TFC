@@ -6,10 +6,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.utad.tfg.local.daos.CharacterDao
 import com.utad.tfg.local.daos.EnemyDao
+import com.utad.tfg.local.daos.CampaignDao
 import com.utad.tfg.local.entities.Enemy
 import com.utad.tfg.local.entities.Character
+import com.utad.tfg.local.entities.Campaign
 import com.utad.tfg.local.entities.SpellEntity
 import com.utad.tfg.model.Ability
+import com.utad.tfg.model.CharState
 import com.utad.tfg.model.DndRace
 import com.utad.tfg.model.RaceRegistry
 import com.utad.tfg.model.classes.ClassRegistry
@@ -32,8 +35,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 
@@ -48,6 +53,7 @@ class MainViewModel @Inject constructor(
     private val firestoreRepository: FirestoreRepository,
     private val enemyDao: EnemyDao,
     private val characterDao: CharacterDao,
+    private val campaignDao: CampaignDao,
     private val spellRepository: SpellRepository,
     private val authRepository: AuthRepository
 ) : ViewModel() {
@@ -79,8 +85,17 @@ class MainViewModel @Inject constructor(
     val localCharacters: StateFlow<List<Character>> = characterDao.getAllCharacters()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val campaigns: StateFlow<List<Campaign>> = campaignDao.getAllCampaigns()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     private val _charSyncState = MutableStateFlow<CharSyncState>(CharSyncState.Syncing)
     val charSyncState = _charSyncState.asStateFlow()
+
+    private val _campaignCharacters = MutableStateFlow<List<Character>>(emptyList())
+    val campaignCharacters = _campaignCharacters.asStateFlow()
+
+    private val _campaignSyncState = MutableStateFlow<CharSyncState>(CharSyncState.Syncing)
+    val campaignSyncState = _campaignSyncState.asStateFlow()
 
     init {
         _races.value = RaceRegistry.races
@@ -96,6 +111,7 @@ class MainViewModel @Inject constructor(
                 _charSyncState.value = CharSyncState.Syncing
                 if (user != null){
                     firestoreRepository.downloadCharactersByUID()
+                    firestoreRepository.downloadCampaignsByUID()
                 }
                 _charSyncState.value = CharSyncState.Done
             }
@@ -304,6 +320,102 @@ class MainViewModel @Inject constructor(
             characterDao.updateCharacter(updatedCharacter)
             firestoreRepository.updateCharacterRemote(updatedCharacter)
             _selectedCharacter.value = updatedCharacter
+        }
+    }
+
+    //======================= Campaigns ========================
+
+    fun createCampaign(name: String, imgUri: String? = null) {
+        viewModelScope.launch {
+            val user = authRepository.currentUser.first() ?: return@launch
+            val campaign = Campaign(
+                id = "", // Will be set by Firestore
+                name = name,
+                ownerId = user.uid,
+                playersIds = emptyList(),
+                charactersIds = emptyList(),
+                monstersIds = emptyList(),
+                imgUri = imgUri
+            )
+            firestoreRepository.uploadCampaign(campaign)
+        }
+    }
+
+    fun joinCampaign(campaignId: String, characterId: Long) {
+        viewModelScope.launch {
+            val user = authRepository.currentUser.first() ?: return@launch
+            val character = characterDao.getCharacterById(characterId) ?: return@launch
+            
+            // Note: Since campaigns are fetched to the local DB, we can try to get it.
+            // If the user hasn't downloaded the campaign, they might not have it locally.
+            // Ideally we fetch it from Firestore first, or just assume they add it.
+            // For now, let's just update the character remote, and we need to update the campaign.
+            // We should ideally have a method to fetch campaign by ID from firestore, update it, and save.
+            try {
+                val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                val doc = db.collection("campaigns").document(campaignId).get().await()
+                if (doc.exists()) {
+                    val pIds = doc.get("playersIds") as? List<String> ?: emptyList()
+                    val cIds = doc.get("charactersIds") as? List<String> ?: emptyList()
+                    
+                    val newPids = if (!pIds.contains(user.uid)) pIds + user.uid else pIds
+                    val newCids = if (character.remoteId != null && !cIds.contains(character.remoteId)) cIds + character.remoteId else cIds
+
+                    db.collection("campaigns").document(campaignId).update(
+                        mapOf(
+                            "playersIds" to newPids,
+                            "charactersIds" to newCids
+                        )
+                    ).await()
+                    
+                    // Update Character
+                    val updatedChar = character.copy(campaignId = campaignId, state = CharState.active)
+                    updateCharacter(updatedChar)
+
+                    // Re-download campaigns
+                    firestoreRepository.downloadCampaignsByUID()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun updateCampaignImage(campaign: Campaign, imgUri: String?) {
+        viewModelScope.launch {
+            val updated = campaign.copy(imgUri = imgUri)
+            campaignDao.updateCampaign(updated)
+            firestoreRepository.updateCampaignRemote(updated)
+        }
+    }
+
+    fun addMonsterToCampaign(campaignId: String, monsterIndex: String) {
+        viewModelScope.launch {
+            val campaign = campaignDao.getCampaignById(campaignId) ?: return@launch
+            if (!campaign.monstersIds.contains(monsterIndex)) {
+                val updated = campaign.copy(monstersIds = campaign.monstersIds + monsterIndex)
+                campaignDao.updateCampaign(updated)
+                firestoreRepository.updateCampaignRemote(updated)
+            }
+        }
+    }
+
+    fun removeMonsterFromCampaign(campaignId: String, monsterIndex: String) {
+        viewModelScope.launch {
+            val campaign = campaignDao.getCampaignById(campaignId) ?: return@launch
+            if (campaign.monstersIds.contains(monsterIndex)) {
+                val updated = campaign.copy(monstersIds = campaign.monstersIds - monsterIndex)
+                campaignDao.updateCampaign(updated)
+                firestoreRepository.updateCampaignRemote(updated)
+            }
+        }
+    }
+
+    fun loadCampaignCharacters(campaign: Campaign) {
+        viewModelScope.launch {
+            _campaignSyncState.value = CharSyncState.Syncing
+            _campaignCharacters.value = firestoreRepository.getCharactersByIds(campaign.charactersIds)
+            _campaignSyncState.value = CharSyncState.Done
         }
     }
 

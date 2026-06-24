@@ -20,6 +20,9 @@ interface CharacterDao {
     @Query("SELECT * FROM characters")
     fun getAllCharacters(): Flow<List<Character>>
 
+    @Query("SELECT * FROM characters WHERE id = :characterId")
+    suspend fun getCharacterById(characterId: Long) : Character?
+
     @Query("DELETE FROM characters WHERE id IN (:ids)")
     suspend fun deleteCharactersByID(ids: List<Long>)
 

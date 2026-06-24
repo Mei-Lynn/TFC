@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -74,9 +75,9 @@ fun MainNavigation(authViewModel: AuthViewModel) {
 
     val isAdmin by authViewModel.isAdmin.collectAsStateWithLifecycle()
 
-    val items = mutableListOf("Characters", /*"Campaigns",*/ "Bestiary")
-    val routes = mutableListOf("charSelect", /*"campaigns",*/ "bestiary")
-    val icons = mutableListOf(Icons.Default.Person, /*Icons.Default.Home,*/ Icons.AutoMirrored.Filled.List)
+    val items = mutableListOf("Characters", "Campaigns", "Bestiary")
+    val routes = mutableListOf("charSelect", "campaigns", "bestiary")
+    val icons = mutableListOf(Icons.Default.Person, Icons.Default.Group, Icons.AutoMirrored.Filled.List)
 
     if (isAdmin) {
         items.add("Admin")
@@ -118,7 +119,7 @@ fun MainNavigation(authViewModel: AuthViewModel) {
                 onCharacterClick = { navController.navigate("charDetails") }
             ) }
             composable("charCreate") { CharCreateScreen(onCharacterCreated = { navController.navigate("charSelect") }) }
-            composable("campaigns") { Campaigns() }
+            composable("campaigns") { CampaignsScreen(onCharacterClick = { navController.navigate("charDetails") }) }
             composable("bestiary") { BestiaryScreen() }
             composable("charDetails") { CharDetailsScreen(
                 onBack = { navController.popBackStack() },
