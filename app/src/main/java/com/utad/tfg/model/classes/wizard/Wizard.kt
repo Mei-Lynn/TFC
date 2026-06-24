@@ -9,7 +9,6 @@ import com.utad.tfg.model.classes.*
 class Wizard(override var level: Int = 1) : Class {
     override val className: String = "Wizard"
     override val classIndex: String = "wizard"
-    override val imgUri: String? = ""
     override val primaryAbility: Ability = Ability.Intelligence
     override val savingThrows: List<Ability> = listOf(Ability.Intelligence, Ability.Wisdom)
     override val armorProficiencies: List<ArmorType> = emptyList()

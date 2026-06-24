@@ -1,8 +1,22 @@
 package com.utad.tfg.model
 
-sealed class DndRace(val raceName: String, val subraceName: String? = null, open val imgUri: String? = "") {
+import com.utad.tfg.R
+
+sealed class DndRace(val raceName: String, val subraceName: String? = null, _imgUri: Any? = null) {
+    open var imgUri: Any? = _imgUri ?: when (raceName.lowercase()) {
+        "elf" -> R.drawable.race_elf
+        "half-orc" -> R.drawable.race_half_orc
+        "aasimar" -> R.drawable.race_aasimar
+        "firbolg" -> R.drawable.race_firbolg
+        "kenku" -> R.drawable.race_kenku
+        "lizardfolk" -> R.drawable.race_lizardfolk
+        "tabaxi" -> R.drawable.race_tabaxi
+        "tiefling" -> R.drawable.race_tiefling
+        else -> null
+    }
+
     // Core Races
-    data object Human: DndRace("Human", null, "")
+    data object Human: DndRace("Human", null)
 
     sealed class Elf(subrace: String) : DndRace("Elf", subrace) {
         data object High : Elf("High Elf")

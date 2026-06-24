@@ -68,6 +68,7 @@ dependencies {
 
     // Image loading
     implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
 
     // Networking
     implementation(libs.retrofit)

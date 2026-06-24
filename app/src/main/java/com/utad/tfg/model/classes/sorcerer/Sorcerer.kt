@@ -9,7 +9,6 @@ import com.utad.tfg.model.classes.*
 class Sorcerer(override var level: Int = 1) : Class {
     override val className: String = "Sorcerer"
     override val classIndex: String = "sorcerer"
-    override val imgUri: String? = ""
     override val primaryAbility: Ability = Ability.Charisma
     override val savingThrows: List<Ability> = listOf(Ability.Constitution, Ability.Charisma)
     override val armorProficiencies: List<ArmorType> = emptyList()

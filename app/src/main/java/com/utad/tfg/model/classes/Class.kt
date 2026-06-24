@@ -4,11 +4,20 @@ import com.utad.tfg.model.Ability
 import com.utad.tfg.model.ArmorType
 import com.utad.tfg.model.WeaponType
 import com.utad.tfg.local.entities.Character
+import com.utad.tfg.R
 
 interface Class {
     val className: String //Duh
     val classIndex: String //Index from the API
-    val imgUri: String?
+    val imgUri: Any?
+        get() = when (className.lowercase()) {
+            "barbarian" -> R.drawable.class_barbarian
+            "ranger" -> R.drawable.class_ranger
+            "rogue" -> R.drawable.class_rogue
+            "sorcerer" -> R.drawable.class_sorcerer
+            "wizard" -> R.drawable.class_wizard
+            else -> null
+        }
     var level: Int //Nivel actual en la clase, para navegar las listas
     
     val primaryAbility: Ability //Stat principal de escalado

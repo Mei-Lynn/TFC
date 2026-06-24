@@ -9,7 +9,6 @@ import com.utad.tfg.model.classes.*
 class Cleric(override var level: Int = 1) : Class {
     override val className: String = "Cleric"
     override val classIndex: String = "cleric"
-    override val imgUri: String? = ""
     override val primaryAbility: Ability = Ability.Wisdom
     override val savingThrows: List<Ability> = listOf(Ability.Wisdom, Ability.Charisma)
     override val armorProficiencies: List<ArmorType> = listOf(ArmorType.Light, ArmorType.Medium, ArmorType.Shields)

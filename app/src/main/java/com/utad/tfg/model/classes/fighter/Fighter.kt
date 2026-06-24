@@ -9,7 +9,6 @@ import com.utad.tfg.model.classes.*
 class Fighter(override var level: Int = 1) : Class {
     override val className: String = "Fighter"
     override val classIndex: String = "fighter"
-    override val imgUri: String? = ""
     override val primaryAbility: Ability = Ability.Strength
     override val savingThrows: List<Ability> = listOf(Ability.Strength, Ability.Constitution)
     override val armorProficiencies: List<ArmorType> = listOf(ArmorType.Light, ArmorType.Medium, ArmorType.Heavy, ArmorType.Shields)

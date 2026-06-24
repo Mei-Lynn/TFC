@@ -9,7 +9,6 @@ import com.utad.tfg.model.classes.*
 class Bard(override var level: Int = 1) : Class {
     override val className: String = "Bard"
     override val classIndex: String = "bard"
-    override val imgUri: String? = ""
     override val primaryAbility: Ability = Ability.Charisma
     override val savingThrows: List<Ability> = listOf(Ability.Dexterity, Ability.Charisma)
     override val armorProficiencies: List<ArmorType> = listOf(ArmorType.Light)

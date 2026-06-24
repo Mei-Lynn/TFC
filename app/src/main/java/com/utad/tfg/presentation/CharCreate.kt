@@ -4,11 +4,13 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.util.Base64
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,8 +30,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -206,7 +211,9 @@ fun CharCreateContent(
                 it?.let { onRaceSelected(it.raceName) }
             }
         )
-        ItemImageSlot(selectedRace?.imgUri)
+        if (selectedRace != null) {
+            ItemImageSlot(selectedRace?.imgUri)
+        }
 
         // Subraza
         if (subraces.isNotEmpty()) {
@@ -234,7 +241,9 @@ fun CharCreateContent(
                 it?.let { onClassSelected(it.classIndex) }
             }
         )
-        ItemImageSlot(selectedClass?.imgUri)
+        if (selectedClass != null) {
+            ItemImageSlot(selectedClass?.imgUri)
+        }
 
         // Subclase
         if (subclasses.isNotEmpty() && selectedClass?.subclassProgression?.minOrNull() == 1) {
@@ -400,7 +409,8 @@ fun EquipmentEditor(
         optionName = { it?.weaponName ?: "Nothing" },
         onOptionSelected = { onMainHandChange(it) }
     )
-    ItemImageSlot(selectedMainHand?.imgUri)
+    if (selectedMainHand != null)
+        ItemImageSlot(selectedMainHand.imgUri)
 
     if (selectedMainHand?.properties?.contains(WeaponProperty.TWO_HANDED) == false) {
         val offHandOptions = remember(selectedMainHand, weapons, armors) {
@@ -422,7 +432,8 @@ fun EquipmentEditor(
             },
             onOptionSelected = { onOffHandChange(it) }
         )
-        ItemImageSlot(selectedOffHand?.imgUri)
+        if (selectedOffHand != null)
+            ItemImageSlot(selectedOffHand.imgUri)
     }
 
     DropdownSelector(
@@ -432,7 +443,8 @@ fun EquipmentEditor(
         optionName = { it?.armorName ?: "Nothing" },
         onOptionSelected = { onArmorChange(it) }
     )
-    ItemImageSlot(selectedArmor?.imgUri)
+    if (selectedArmor != null)
+        ItemImageSlot(selectedArmor.imgUri)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -583,23 +595,57 @@ fun getNextPointCost(currentScore: Int): Int {
 }
 
 @Composable
-fun ItemImageSlot(imgUri: String?) {
+fun ItemImageSlot(imgUri: Any?) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(120.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .border(1.dp, MaterialTheme.colorScheme.outline, androidx.compose.foundation.shape.RoundedCornerShape(8.dp)),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
-        if (!imgUri.isNullOrEmpty()) {
-            AsyncImage(
-                model = imgUri,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Fit
-            )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.6f)
+                .aspectRatio(3f / 4f)
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            if (imgUri != null && imgUri.toString().isNotEmpty()) {
+            if (imgUri is Int) {
+                Image(
+                    painter = painterResource(id = imgUri),
+                    contentDescription = "Supporting image",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
+                )
+            } else if (imgUri is String && imgUri.startsWith("data:image")) {
+                val base64String = imgUri.substringAfter("base64,")
+                val imageBytes = Base64.decode(base64String, Base64.DEFAULT)
+                val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                if (bitmap != null) {
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Default.Image,
+                            contentDescription = "Placeholder",
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                    }
+                }
+            } else if (imgUri is String) {
+                AsyncImage(
+                    model = imgUri,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
+                )
+            }
         } else {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(
@@ -614,6 +660,7 @@ fun ItemImageSlot(imgUri: String?) {
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
+            }
             }
         }
     }
