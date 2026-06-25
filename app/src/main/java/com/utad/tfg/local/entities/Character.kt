@@ -8,14 +8,6 @@ import com.utad.tfg.model.CharState
 
 @Entity(
     tableName = "characters",
-    foreignKeys = [
-        ForeignKey(
-            entity = Campaign::class,
-            parentColumns = ["id"],
-            childColumns = ["campaignId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ],
     indices = [Index(value = ["campaignId"])]
 )
 data class Character(
