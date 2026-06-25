@@ -83,7 +83,7 @@ fun BestiaryScreen() {
     var selectedMonsterToAdd by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        vm.fetchMonsters()
+
     }
 
     if (showInfoDialog) {

@@ -12,19 +12,14 @@ class SpellRepository @Inject constructor(
     private val spellDao: SpellDao
 ) {
 
-    suspend fun syncSpellsIfNeeded() {
+    suspend fun observeSpells() {
         try {
-            if (spellDao.getSpellCount() == 0) {
-                syncSpells()
+            firestoreRepository.getSpellsFlow().collect { spells ->
+                spellDao.insertSpells(spells)
             }
         } catch (e: Exception) {
             e.printStackTrace()
         }
-    }
-
-    private suspend fun syncSpells() {
-        val spells = firestoreRepository.fetchAllSpells()
-        spellDao.insertSpells(spells)
     }
 
     suspend fun fetchSpellDetails(index: String): SpellEntity? {

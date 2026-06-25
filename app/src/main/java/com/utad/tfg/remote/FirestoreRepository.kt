@@ -18,6 +18,9 @@ import com.utad.tfg.model.equipment.Armor
 import com.utad.tfg.model.equipment.Weapon
 import com.utad.tfg.model.equipment.WeaponProperty
 import com.utad.tfg.security.AuthRepository
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.tasks.await
 import java.io.ByteArrayOutputStream
@@ -45,81 +48,89 @@ class FirestoreRepository @Inject constructor(
 
     // ========================= Equipment =========================
 
-    suspend fun getWeapons(): List<Weapon> {
-        return try {
-            val snapshot = firestore.collection("weapons").get().await()
-            snapshot.documents.mapNotNull { doc ->
-                try {
-                    val name = doc.getString("name") ?: return@mapNotNull null
-                    val index = doc.getString("key") ?: return@mapNotNull null
-                    val damageDice = doc.getString("damage_dice") ?: ""
-                    val damageTypeMap = doc.get("damage_type") as? Map<String, Any>
-                    val damageType = damageTypeMap?.get("name") as? String ?: ""
-                    val isSimple = doc.getBoolean("is_simple") ?: false
-                    val weaponType = if (isSimple) WeaponType.Simple else WeaponType.Martial
-                    
-                    val propertiesList = doc.get("properties") as? List<Map<String, Any>> ?: emptyList()
-                    val properties = propertiesList.mapNotNull { propMap ->
-                        val propInner = propMap["property"] as? Map<String, Any>
-                        val propName = propInner?.get("name") as? String
-                        when (propName) {
-                            "Finesse" -> WeaponProperty.FINESSE
-                            "Light" -> WeaponProperty.LIGHT
-                            "Heavy" -> WeaponProperty.HEAVY
-                            "Reach" -> WeaponProperty.REACH
-                            "Two-Handed" -> WeaponProperty.TWO_HANDED
-                            "Versatile" -> WeaponProperty.VERSATILE
-                            "Thrown" -> WeaponProperty.THROWN
-                            "Loading" -> WeaponProperty.LOADING
-                            "Ammunition" -> WeaponProperty.AMMUNITION
-                            else -> null
-                        }
-                    }
-                    val reach = if (properties.contains(WeaponProperty.REACH)) 10 else 5
-                    val imgUri = doc.getString("imgUri")
-
-                    Weapon(name, index, damageDice, damageType, weaponType, properties, reach, imgUri)
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error parsing weapon", e)
-                    null
-                }
+    fun getWeaponsFlow(): Flow<List<Weapon>> = callbackFlow {
+        val listener = firestore.collection("weapons").addSnapshotListener { snapshot, e ->
+            if (e != null) {
+                Log.e(TAG, "Listen failed for weapons.", e)
+                return@addSnapshotListener
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error fetching weapons", e)
-            emptyList()
+            if (snapshot != null) {
+                val weapons = snapshot.documents.mapNotNull { doc ->
+                    try {
+                        val name = doc.getString("name") ?: return@mapNotNull null
+                        val index = doc.getString("key") ?: return@mapNotNull null
+                        val damageDice = doc.getString("damage_dice") ?: ""
+                        val damageTypeMap = doc.get("damage_type") as? Map<String, Any>
+                        val damageType = damageTypeMap?.get("name") as? String ?: ""
+                        val isSimple = doc.getBoolean("is_simple") ?: false
+                        val weaponType = if (isSimple) WeaponType.Simple else WeaponType.Martial
+                        
+                        val propertiesList = doc.get("properties") as? List<Map<String, Any>> ?: emptyList()
+                        val properties = propertiesList.mapNotNull { propMap ->
+                            val propInner = propMap["property"] as? Map<String, Any>
+                            val propName = propInner?.get("name") as? String
+                            when (propName) {
+                                "Finesse" -> WeaponProperty.FINESSE
+                                "Light" -> WeaponProperty.LIGHT
+                                "Heavy" -> WeaponProperty.HEAVY
+                                "Reach" -> WeaponProperty.REACH
+                                "Two-Handed" -> WeaponProperty.TWO_HANDED
+                                "Versatile" -> WeaponProperty.VERSATILE
+                                "Thrown" -> WeaponProperty.THROWN
+                                "Loading" -> WeaponProperty.LOADING
+                                "Ammunition" -> WeaponProperty.AMMUNITION
+                                else -> null
+                            }
+                        }
+                        val reach = if (properties.contains(WeaponProperty.REACH)) 10 else 5
+                        val imgUri = doc.getString("imgUri")
+
+                        Weapon(name, index, damageDice, damageType, weaponType, properties, reach, imgUri)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error parsing weapon", e)
+                        null
+                    }
+                }
+                trySend(weapons)
+            }
         }
+        awaitClose { listener.remove() }
     }
 
-    suspend fun getArmor(): List<Armor> {
-        return try {
-            val snapshot = firestore.collection("armor").get().await()
-            snapshot.documents.mapNotNull { doc ->
-                try {
-                    val name = doc.getString("name") ?: return@mapNotNull null
-                    val index = doc.getString("key") ?: return@mapNotNull null
-                    val baseAc = doc.getLong("ac_base")?.toInt() ?: 10
-                    val category = doc.getString("category") ?: "light"
-                    val armorType = when (category.lowercase()) {
-                        "light" -> ArmorType.Light
-                        "medium" -> ArmorType.Medium
-                        "heavy" -> ArmorType.Heavy
-                        "shield" -> ArmorType.Shields
-                        else -> ArmorType.Light
-                    }
-                    val strengthRequired = doc.getLong("strength_score_required")?.toInt() ?: 0
-                    val stealthDisadvantage = doc.getBoolean("grants_stealth_disadvantage") ?: false
-                    val imgUri = doc.getString("imgUri")
-
-                    Armor(name, index, baseAc, armorType, strengthRequired, stealthDisadvantage, imgUri)
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error parsing armor", e)
-                    null
-                }
+    fun getArmorFlow(): Flow<List<Armor>> = callbackFlow {
+        val listener = firestore.collection("armor").addSnapshotListener { snapshot, e ->
+            if (e != null) {
+                Log.e(TAG, "Listen failed for armor.", e)
+                return@addSnapshotListener
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error fetching armor", e)
-            emptyList()
+            if (snapshot != null) {
+                val armors = snapshot.documents.mapNotNull { doc ->
+                    try {
+                        val name = doc.getString("name") ?: return@mapNotNull null
+                        val index = doc.getString("key") ?: return@mapNotNull null
+                        val baseAc = doc.getLong("ac_base")?.toInt() ?: 10
+                        val category = doc.getString("category") ?: "light"
+                        val armorType = when (category.lowercase()) {
+                            "light" -> ArmorType.Light
+                            "medium" -> ArmorType.Medium
+                            "heavy" -> ArmorType.Heavy
+                            "shield" -> ArmorType.Shields
+                            else -> ArmorType.Light
+                        }
+                        val strengthRequired = doc.getLong("strength_score_required")?.toInt() ?: 0
+                        val stealthDisadvantage = doc.getBoolean("grants_stealth_disadvantage") ?: false
+                        val imgUri = doc.getString("imgUri")
+
+                        Armor(name, index, baseAc, armorType, strengthRequired, stealthDisadvantage, imgUri)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error parsing armor", e)
+                        null
+                    }
+                }
+                trySend(armors)
+            }
         }
+        awaitClose { listener.remove() }
     }
 
     // ========================= Spells =========================
@@ -128,24 +139,25 @@ class FirestoreRepository @Inject constructor(
      * Fetches all spells from the "spells" Firestore collection
      * and maps them to [SpellEntity] objects.
      */
-    suspend fun fetchAllSpells(): List<SpellEntity> {
-        return try {
-            val snapshot = firestore.collection("spells").get().await()
-            snapshot.documents.mapNotNull { doc ->
-                try {
-                    mapSpellDocument(doc.data ?: return@mapNotNull null)
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error mapping spell document ${doc.id}", e)
-                    null
-                }
+    fun getSpellsFlow(): Flow<List<SpellEntity>> = callbackFlow {
+        val listener = firestore.collection("spells").addSnapshotListener { snapshot, e ->
+            if (e != null) {
+                handleFirestoreError("getSpellsFlow", e)
+                return@addSnapshotListener
             }
-        } catch (e: FirebaseFirestoreException) {
-            handleFirestoreError("fetchAllSpells", e)
-            emptyList()
-        } catch (e: Exception) {
-            Log.e(TAG, "Unexpected error in fetchAllSpells", e)
-            emptyList()
+            if (snapshot != null) {
+                val spells = snapshot.documents.mapNotNull { doc ->
+                    try {
+                        mapSpellDocument(doc.data ?: return@mapNotNull null)
+                    } catch (ex: Exception) {
+                        Log.e(TAG, "Error mapping spell document ${doc.id}", ex)
+                        null
+                    }
+                }
+                trySend(spells)
+            }
         }
+        awaitClose { listener.remove() }
     }
 
     private fun handleFirestoreError(method: String, e: FirebaseFirestoreException) {
@@ -244,22 +256,23 @@ class FirestoreRepository @Inject constructor(
      * Fetches a lightweight list of all creatures (key + name only)
      * for the Bestiary browse list.
      */
-    suspend fun fetchCreatureList(): List<JsonResource> {
-        return try {
-            val snapshot = firestore.collection("creatures").get().await()
-            snapshot.documents.mapNotNull { doc ->
-                val data = doc.data ?: return@mapNotNull null
-                val key = data["key"] as? String ?: return@mapNotNull null
-                val name = data["name"] as? String ?: return@mapNotNull null
-                JsonResource(index = key, name = name, url = "")
+    fun getCreatureListFlow(): Flow<List<JsonResource>> = callbackFlow {
+        val listener = firestore.collection("creatures").addSnapshotListener { snapshot, e ->
+            if (e != null) {
+                handleFirestoreError("getCreatureListFlow", e)
+                return@addSnapshotListener
             }
-        } catch (e: FirebaseFirestoreException) {
-            handleFirestoreError("fetchCreatureList", e)
-            emptyList()
-        } catch (e: Exception) {
-            Log.e(TAG, "Unexpected error in fetchCreatureList", e)
-            emptyList()
+            if (snapshot != null) {
+                val creatures = snapshot.documents.mapNotNull { doc ->
+                    val data = doc.data ?: return@mapNotNull null
+                    val key = data["key"] as? String ?: return@mapNotNull null
+                    val name = data["name"] as? String ?: return@mapNotNull null
+                    JsonResource(index = key, name = name, url = "")
+                }
+                trySend(creatures)
+            }
         }
+        awaitClose { listener.remove() }
     }
 
     /**

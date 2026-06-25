@@ -100,12 +100,21 @@ class MainViewModel @Inject constructor(
     init {
         _races.value = RaceRegistry.races
         _classes.value = ClassRegistry.classes
-        fetchMonsters()
+        
         viewModelScope.launch {
-            _weapons.value = firestoreRepository.getWeapons()
-            _armors.value = firestoreRepository.getArmor()
-            spellRepository.syncSpellsIfNeeded()
+            firestoreRepository.getCreatureListFlow().collect { _monsters.value = it }
+        }
+        viewModelScope.launch {
+            firestoreRepository.getWeaponsFlow().collect { _weapons.value = it }
+        }
+        viewModelScope.launch {
+            firestoreRepository.getArmorFlow().collect { _armors.value = it }
+        }
+        viewModelScope.launch {
+            spellRepository.observeSpells()
+        }
 
+        viewModelScope.launch {
             characterDao.deleteAllCharacters()
             authRepository.currentUser.collect { user ->
                 _charSyncState.value = CharSyncState.Syncing
@@ -431,16 +440,7 @@ class MainViewModel @Inject constructor(
 
     //========================= Firestore ==========================
 
-    fun fetchMonsters() {
-        viewModelScope.launch {
-            try {
-                val creatures = firestoreRepository.fetchCreatureList()
-                _monsters.value = creatures
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
+
 
     private val _monsterDetails = MutableStateFlow<DndMonsterResponse?>(null)
     val monsterDetails = _monsterDetails.asStateFlow()

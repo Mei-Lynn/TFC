@@ -370,7 +370,7 @@ fun CampaignDetailsDialog(campaign: Campaign, onDismiss: () -> Unit, onCharacter
     
     LaunchedEffect(campaign) {
         vm.loadCampaignCharacters(campaign)
-        vm.fetchMonsters()
+
     }
     
     val characters by vm.campaignCharacters.collectAsStateWithLifecycle()
