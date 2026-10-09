@@ -477,6 +477,17 @@ fun CampaignDetailsDialog(campaign: Campaign, onDismiss: () -> Unit, onCharacter
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.weight(1f)
                         ) {
+                            /** EDITAR AQUÍ PARA AÑADIR JUGADORES
+                             * Lista de requerimientos:
+                             * - Añadir tabla de usuarios en Firestore ~ Actualizar login/creación de usuarios
+                             * Objetivo:
+                             * - Alterar la lógica de campaña: Se unen usuarios y ellos eligen (de forma bloqueante) un personaje
+                             * - El DM puede expulsar jugadores o borrar personajes de la campaña
+                             * - Los jugadores pueden reemplazar su personaje una vez está muerto
+                             * - Añadir líneas a la tabla de la campaña: AvailableLevelOrXP y hacer logica que bloquee a los jugadores de subir de nivel
+                             * -
+                              */
+
                             items(characters) { character ->
                                 CharacterCard(
                                     character = character,

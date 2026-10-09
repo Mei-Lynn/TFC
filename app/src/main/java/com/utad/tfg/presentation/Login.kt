@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
@@ -47,6 +48,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
+import com.utad.tfg.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -75,6 +78,7 @@ fun LoginScreen(authViewModel: AuthViewModel) {
 
     // Form state
     var email by rememberSaveable { mutableStateOf("") }
+    var username by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
     var isRegisterMode by rememberSaveable { mutableStateOf(false) }
@@ -117,12 +121,34 @@ fun LoginScreen(authViewModel: AuthViewModel) {
             )
             Spacer(Modifier.height(32.dp))
 
+            // Username (ONLY REGISTER // Mix in on login)
+
+            if (isRegisterMode) {
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = { username = it },
+                    label = { Text(stringResource(R.string.username)) },
+                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = "username") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isLoading
+                )
+                Spacer(Modifier.height(12.dp))
+            }
+
             // ── Email field ──
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("Email") },
-                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                label = { Text(if (isRegisterMode) stringResource(R.string.email) else stringResource(R.string.email_or_username)) },
+                leadingIcon = { Icon(Icons.Default.Email, contentDescription = "email") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.None,
@@ -141,8 +167,8 @@ fun LoginScreen(authViewModel: AuthViewModel) {
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password") },
-                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                label = { Text(stringResource(R.string.password)) },
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "password") },
                 trailingIcon = {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
@@ -164,9 +190,9 @@ fun LoginScreen(authViewModel: AuthViewModel) {
                 keyboardActions = KeyboardActions(
                     onDone = {
                         focusManager.clearFocus()
-                        if (email.isNotBlank() && password.isNotBlank()) {
-                            if (isRegisterMode) authViewModel.registerWithEmail(email, password)
-                            else authViewModel.loginWithEmail(email, password)
+                        if (email.isNotBlank() && password.isNotBlank() && (!isRegisterMode || username.isNotBlank())) {
+                            if (isRegisterMode) authViewModel.registerWithEmail(email, password, username)
+                            else authViewModel.loginWithEmailOrUsername(email, password)
                         }
                     }
                 ),
@@ -179,13 +205,13 @@ fun LoginScreen(authViewModel: AuthViewModel) {
             Button(
                 onClick = {
                     focusManager.clearFocus()
-                    if (isRegisterMode) authViewModel.registerWithEmail(email, password)
-                    else authViewModel.loginWithEmail(email, password)
+                    if (isRegisterMode) authViewModel.registerWithEmail(email, password, username)
+                    else authViewModel.loginWithEmailOrUsername(email, password)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
-                enabled = email.isNotBlank() && password.isNotBlank() && !isLoading
+                enabled = email.isNotBlank() && password.isNotBlank() && (!isRegisterMode || username.isNotBlank()) && !isLoading
             ) {
                 AnimatedVisibility(visible = isLoading, enter = fadeIn(), exit = fadeOut()) {
                     CircularProgressIndicator(

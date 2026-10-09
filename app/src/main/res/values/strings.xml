@@ -53,4 +53,9 @@
     <string name="delete">Delete</string>
     <string name="delete_message">You wont be able to recover any character after deletion. Are you sure?</string>
     <string name="actions">Actions</string>
+    <string name="username">Username</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="email_or_username">Email or username</string>
+    <string name="error_invalid_username_symbol">Username cannot contain the %1$s symbol</string>
 </resources>

@@ -55,7 +55,7 @@ class AuthViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-    fun loginWithEmail(email: String, password: String) {
+    fun loginWithEmailOrUsername(email: String, password: String) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             try {
@@ -69,11 +69,11 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun registerWithEmail(email: String, password: String) {
+    fun registerWithEmail(email: String, password: String, username: String) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             try {
-                val user = authRepository.register(email, password)
+                val user = authRepository.register(email, password, username)
                 _authState.value = AuthState.Success(user)
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(

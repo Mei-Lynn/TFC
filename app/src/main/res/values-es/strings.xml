@@ -52,5 +52,11 @@
     <string name="image_placeholder">Sin imagen</string>
     <string name="delete">Borrar</string>
     <string name="delete_message">Los personajes no se pueden recuperar una vez eliminados. ¿Quieres continuar?</string>
+    <string name="actions">Acciones</string>
+    <string name="username">Nombre de usuario</string>
+    <string name="email">Correo electrónico</string>
+    <string name="password">Contraseña</string>
+    <string name="email_or_username">Correo electrónico o nombre de usuario</string>
+    <string name="error_invalid_username_symbol">El nombre de usuario no puede contener el símbolo %1$s</string>
 </resources>
 
