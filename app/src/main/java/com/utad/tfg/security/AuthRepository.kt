@@ -63,7 +63,7 @@ class AuthRepository @Inject constructor(
         }
 
         val result = firebaseAuth.createUserWithEmailAndPassword(email, password).await()
-        val user = result.user ?: throw IllegalStateException("Registration succeeded but user is null")
+        val user = result.user ?: throw IllegalStateException(context.getString(R.string.registration_user_null))
 
         val profileUpdates = UserProfileChangeRequest.Builder()
             .setDisplayName(username)
@@ -86,15 +86,25 @@ class AuthRepository @Inject constructor(
     /**
      * Sign in an existing user with email and password.
      */
-    suspend fun login(email: String, password: String): FirebaseUser {
-        var credential = email
+    suspend fun login(emailOrUsername: String, password: String): FirebaseUser {
+        var credential = emailOrUsername
 
-        if (!email.contains("@")){
+        if (!emailOrUsername.contains("@")){
+            val query = firestore.collection("users")
+                .whereEqualTo("username", emailOrUsername)
+                .get()
+                .await()
 
+            if (query.isEmpty) {
+                throw IllegalArgumentException(context.getString(R.string.username_not_found))
+            }
+
+            credential = query.documents.first().getString("email")
+                ?: throw IllegalStateException(context.getString(R.string.user_record_missing_email))
         }
 
         val result = firebaseAuth.signInWithEmailAndPassword(credential, password).await()
-        return result.user ?: throw IllegalStateException("Login succeeded but user is null")
+        return result.user ?: throw IllegalStateException(context.getString(R.string.login_user_null))
     }
 
     /**
@@ -103,7 +113,7 @@ class AuthRepository @Inject constructor(
     suspend fun loginWithGoogle(idToken: String): FirebaseUser {
         val credential = GoogleAuthProvider.getCredential(idToken, null)
         val result = firebaseAuth.signInWithCredential(credential).await()
-        return result.user ?: throw IllegalStateException("Google sign-in succeeded but user is null")
+        return result.user ?: throw IllegalStateException(context.getString(R.string.google_signin_user_null))
     }
 
     /** Sign out the current user. */

@@ -58,4 +58,9 @@
     <string name="password">Password</string>
     <string name="email_or_username">Email or username</string>
     <string name="error_invalid_username_symbol">Username cannot contain the %1$s symbol</string>
+    <string name="username_not_found">Username not found</string>
+    <string name="user_record_missing_email">User record missing email</string>
+    <string name="registration_user_null">Registration succeeded but user is null</string>
+    <string name="login_user_null">Login succeeded but user is null</string>
+    <string name="google_signin_user_null">Google sign-in succeeded but user is null</string>
 </resources>

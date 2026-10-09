@@ -479,7 +479,7 @@ fun CampaignDetailsDialog(campaign: Campaign, onDismiss: () -> Unit, onCharacter
                         ) {
                             /** EDITAR AQUÍ PARA AÑADIR JUGADORES
                              * Lista de requerimientos:
-                             * - Añadir tabla de usuarios en Firestore ~ Actualizar login/creación de usuarios
+                             * - Añadir tabla de usuarios en Firestore ~ Actualizar login/creación de usuarios ✅
                              * Objetivo:
                              * - Alterar la lógica de campaña: Se unen usuarios y ellos eligen (de forma bloqueante) un personaje
                              * - El DM puede expulsar jugadores o borrar personajes de la campaña

@@ -58,5 +58,10 @@
     <string name="password">Contraseña</string>
     <string name="email_or_username">Correo electrónico o nombre de usuario</string>
     <string name="error_invalid_username_symbol">El nombre de usuario no puede contener el símbolo %1$s</string>
+    <string name="username_not_found">Nombre de usuario no encontrado</string>
+    <string name="user_record_missing_email">Falta el correo en el registro de usuario</string>
+    <string name="registration_user_null">El registro se completó pero el usuario es nulo</string>
+    <string name="login_user_null">El inicio de sesión se completó pero el usuario es nulo</string>
+    <string name="google_signin_user_null">El inicio de sesión con Google se completó pero el usuario es nulo</string>
 </resources>
 
