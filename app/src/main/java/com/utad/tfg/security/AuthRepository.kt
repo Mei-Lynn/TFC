@@ -113,7 +113,49 @@ class AuthRepository @Inject constructor(
     suspend fun loginWithGoogle(idToken: String): FirebaseUser {
         val credential = GoogleAuthProvider.getCredential(idToken, null)
         val result = firebaseAuth.signInWithCredential(credential).await()
-        return result.user ?: throw IllegalStateException(context.getString(R.string.google_signin_user_null))
+        val user = result.user ?: throw IllegalStateException(context.getString(R.string.google_signin_user_null))
+
+        // Check if user document already exists in Firestore
+        val userDocRef = firestore.collection("users").document(user.uid)
+        val docSnapshot = userDocRef.get().await()
+
+        if (!docSnapshot.exists()) {
+            // Generate a base username from Google displayName or email prefix
+            val baseUsername = user.displayName?.takeIf { it.isNotBlank() }
+                ?: user.email?.substringBefore("@")
+                ?: "User_${user.uid.take(6)}"
+
+            // Ensure username uniqueness in Firestore
+            var finalUsername = baseUsername
+            var counter = 1
+            while (true) {
+                val existing = firestore.collection("users")
+                    .whereEqualTo("username", finalUsername)
+                    .get()
+                    .await()
+                if (existing.isEmpty) break
+                finalUsername = "$baseUsername$counter"
+                counter++
+            }
+
+            // Create Firestore user record
+            val userModel = User(
+                uid = user.uid,
+                email = user.email ?: "",
+                username = finalUsername
+            )
+            userDocRef.set(userModel).await()
+
+            // Set Auth display name if not already set
+            if (user.displayName.isNullOrBlank()) {
+                val profileUpdates = UserProfileChangeRequest.Builder()
+                    .setDisplayName(finalUsername)
+                    .build()
+                user.updateProfile(profileUpdates).await()
+            }
+        }
+
+        return user
     }
 
     /** Sign out the current user. */
