@@ -44,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
@@ -86,20 +87,33 @@ fun LoginScreen(authViewModel: AuthViewModel) {
     var isRegisterMode by rememberSaveable { mutableStateOf(false) }
     var showGoogleDialog by rememberSaveable { mutableStateOf(false) }
     var googleUsername by rememberSaveable { mutableStateOf("") }
+    var googleIdToken by rememberSaveable { mutableStateOf("") }
+    var googleError by rememberSaveable { mutableStateOf<String?>(null) }
 
     val isLoading = authState is AuthState.Loading
-    val googleIdToken = (authState as? AuthState.NeedUsername)?.idToken ?: ""
 
     // Show errors via snackbar and handle Google dialog states
     LaunchedEffect(authState) {
         when (authState) {
             is AuthState.Error -> {
-                snackbarHostState.showSnackbar((authState as AuthState.Error).message)
+                val errorMsg = (authState as AuthState.Error).message
+                if (showGoogleDialog) {
+                    googleError = errorMsg
+                } else {
+                    snackbarHostState.showSnackbar(errorMsg)
+                }
                 authViewModel.clearError()
             }
-            is AuthState.NeedUsername -> showGoogleDialog = true
-            is AuthState.Success -> showGoogleDialog = false
-            is AuthState.Idle -> showGoogleDialog = false
+            is AuthState.NeedUsername -> {
+                showGoogleDialog = true
+                googleIdToken = (authState as AuthState.NeedUsername).idToken
+                googleError = null
+            }
+            is AuthState.Success -> {
+                showGoogleDialog = false
+                googleIdToken = ""
+                googleError = null
+            }
             else -> {}
         }
     }
@@ -303,6 +317,10 @@ fun LoginScreen(authViewModel: AuthViewModel) {
                 Dialog(
                     onDismissRequest = {
                         authViewModel.signOut()
+                        showGoogleDialog = false
+                        googleUsername = ""
+                        googleIdToken = ""
+                        googleError = null
                     }
                 ) {
                     Surface(
@@ -321,10 +339,14 @@ fun LoginScreen(authViewModel: AuthViewModel) {
                             Spacer(Modifier.height(16.dp))
                             OutlinedTextField(
                                 value = googleUsername,
-                                onValueChange = { googleUsername = it },
+                                onValueChange = { 
+                                    googleUsername = it
+                                    googleError = null
+                                },
                                 label = { Text(stringResource(R.string.username)) },
                                 leadingIcon = { Icon(Icons.Default.Edit, contentDescription = "username") },
                                 singleLine = true,
+                                isError = googleError != null,
                                 keyboardOptions = KeyboardOptions(
                                     capitalization = KeyboardCapitalization.None,
                                     imeAction = ImeAction.Done
@@ -339,6 +361,15 @@ fun LoginScreen(authViewModel: AuthViewModel) {
                                 modifier = Modifier.fillMaxWidth(),
                                 enabled = !isLoading
                             )
+                            if (googleError != null) {
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = googleError!!,
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
                             Spacer(Modifier.height(24.dp))
                             Button(
                                 onClick = {
