@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseUser
 import com.utad.tfg.local.daos.CharacterDao
 import com.utad.tfg.security.AuthRepository
+import com.utad.tfg.security.UserNeedsUsernameException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -19,6 +20,7 @@ sealed class AuthState {
     data object Idle : AuthState()
     data object Loading : AuthState()
     data class Success(val user: FirebaseUser) : AuthState()
+    data class NeedUsername(val idToken: String) : AuthState()
     data class Error(val message: String) : AuthState()
 }
 
@@ -69,7 +71,7 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun registerWithEmail(email: String, password: String, username: String) {
+    fun register(email: String, password: String, username: String) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             try {
@@ -83,12 +85,14 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun loginWithGoogle(idToken: String) {
+    fun loginWithGoogle(idToken: String, username: String? = null) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             try {
-                val user = authRepository.loginWithGoogle(idToken)
+                val user = authRepository.loginWithGoogle(idToken, username)
                 _authState.value = AuthState.Success(user)
+            } catch (e: UserNeedsUsernameException) {
+                _authState.value = AuthState.NeedUsername(idToken)
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(
                     e.localizedMessage ?: "Google sign-in failed"

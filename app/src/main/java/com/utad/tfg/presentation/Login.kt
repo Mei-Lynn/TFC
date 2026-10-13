@@ -33,6 +33,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -58,6 +59,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
@@ -82,14 +84,23 @@ fun LoginScreen(authViewModel: AuthViewModel) {
     var password by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
     var isRegisterMode by rememberSaveable { mutableStateOf(false) }
+    var showGoogleDialog by rememberSaveable { mutableStateOf(false) }
+    var googleUsername by rememberSaveable { mutableStateOf("") }
 
     val isLoading = authState is AuthState.Loading
+    val googleIdToken = (authState as? AuthState.NeedUsername)?.idToken ?: ""
 
-    // Show errors via snackbar
+    // Show errors via snackbar and handle Google dialog states
     LaunchedEffect(authState) {
-        if (authState is AuthState.Error) {
-            snackbarHostState.showSnackbar((authState as AuthState.Error).message)
-            authViewModel.clearError()
+        when (authState) {
+            is AuthState.Error -> {
+                snackbarHostState.showSnackbar((authState as AuthState.Error).message)
+                authViewModel.clearError()
+            }
+            is AuthState.NeedUsername -> showGoogleDialog = true
+            is AuthState.Success -> showGoogleDialog = false
+            is AuthState.Idle -> showGoogleDialog = false
+            else -> {}
         }
     }
 
@@ -191,7 +202,7 @@ fun LoginScreen(authViewModel: AuthViewModel) {
                     onDone = {
                         focusManager.clearFocus()
                         if (email.isNotBlank() && password.isNotBlank() && (!isRegisterMode || username.isNotBlank())) {
-                            if (isRegisterMode) authViewModel.registerWithEmail(email, password, username)
+                            if (isRegisterMode) authViewModel.register(email, password, username)
                             else authViewModel.loginWithEmailOrUsername(email, password)
                         }
                     }
@@ -205,7 +216,7 @@ fun LoginScreen(authViewModel: AuthViewModel) {
             Button(
                 onClick = {
                     focusManager.clearFocus()
-                    if (isRegisterMode) authViewModel.registerWithEmail(email, password, username)
+                    if (isRegisterMode) authViewModel.register(email, password, username)
                     else authViewModel.loginWithEmailOrUsername(email, password)
                 },
                 modifier = Modifier
@@ -277,7 +288,6 @@ fun LoginScreen(authViewModel: AuthViewModel) {
                 enabled = !isLoading
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Google "G" as text since we can't embed the logo directly
                     Text(
                         "G",
                         style = MaterialTheme.typography.titleMedium,
@@ -285,7 +295,72 @@ fun LoginScreen(authViewModel: AuthViewModel) {
                         color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(Modifier.width(12.dp))
-                    Text("Continue with Google")
+                    Text(stringResource(R.string.continue_with_google))
+                }
+            }
+
+            if (showGoogleDialog) {
+                Dialog(
+                    onDismissRequest = {
+                        authViewModel.signOut()
+                    }
+                ) {
+                    Surface(
+                        shape = MaterialTheme.shapes.medium,
+                        tonalElevation = 8.dp
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                stringResource(R.string.choose_username),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            OutlinedTextField(
+                                value = googleUsername,
+                                onValueChange = { googleUsername = it },
+                                label = { Text(stringResource(R.string.username)) },
+                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = "username") },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(
+                                    capitalization = KeyboardCapitalization.None,
+                                    imeAction = ImeAction.Done
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onDone = {
+                                        if (googleUsername.isNotBlank() && googleIdToken.isNotBlank()) {
+                                            authViewModel.loginWithGoogle(googleIdToken, googleUsername)
+                                        }
+                                    }
+                                ),
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = !isLoading
+                            )
+                            Spacer(Modifier.height(24.dp))
+                            Button(
+                                onClick = {
+                                    if (googleUsername.isNotBlank() && googleIdToken.isNotBlank()) {
+                                        authViewModel.loginWithGoogle(googleIdToken, googleUsername)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = googleUsername.isNotBlank() && googleIdToken.isNotBlank() && !isLoading
+                            ) {
+                                if (isLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                } else {
+                                    Text(stringResource(R.string.continue_text))
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

@@ -63,4 +63,9 @@
     <string name="registration_user_null">Registration succeeded but user is null</string>
     <string name="login_user_null">Login succeeded but user is null</string>
     <string name="google_signin_user_null">Google sign-in succeeded but user is null</string>
+    <string name="choose_username">Choose Username</string>
+    <string name="continue_text">Continue</string>
+    <string name="continue_with_google">Continue with Google</string>
+    <string name="user_needs_username">User needs a username</string>
+    <string name="username_already_taken">Username is already taken.</string>
 </resources>

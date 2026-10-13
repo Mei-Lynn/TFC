@@ -53,12 +53,13 @@ fun RootScreen() {
     val authViewModel = hiltViewModel<AuthViewModel>()
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
     val sessionState by authViewModel.sessionState.collectAsStateWithLifecycle()
+    val authState by authViewModel.authState.collectAsStateWithLifecycle()
 
     when (sessionState) {
         SessionState.Loading -> Box(modifier = Modifier.fillMaxSize(), contentAlignment =  Alignment.Center ) { CircularProgressIndicator() }
 
         else -> {
-            if (currentUser == null) {
+            if (currentUser == null || authState !is AuthState.Success) {
                 LoginScreen(authViewModel = authViewModel)
             } else {
                 MainNavigation(authViewModel = authViewModel)

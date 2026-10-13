@@ -1,6 +1,7 @@
 package com.utad.tfg.security
 
 import android.content.Context
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseUser
@@ -17,6 +18,8 @@ import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
+
+class UserNeedsUsernameException(message: String) : Exception(message)
 
 @Singleton
 class AuthRepository @Inject constructor(
@@ -110,7 +113,7 @@ class AuthRepository @Inject constructor(
     /**
      * Sign in with a Google ID token obtained from Credential Manager.
      */
-    suspend fun loginWithGoogle(idToken: String): FirebaseUser {
+    suspend fun loginWithGoogle(idToken: String, username: String? = null): FirebaseUser {
         val credential = GoogleAuthProvider.getCredential(idToken, null)
         val result = firebaseAuth.signInWithCredential(credential).await()
         val user = result.user ?: throw IllegalStateException(context.getString(R.string.google_signin_user_null))
@@ -120,36 +123,40 @@ class AuthRepository @Inject constructor(
         val docSnapshot = userDocRef.get().await()
 
         if (!docSnapshot.exists()) {
-            // Generate a base username from Google displayName or email prefix
-            val baseUsername = user.displayName?.takeIf { it.isNotBlank() }
-                ?: user.email?.substringBefore("@")
-                ?: "User_${user.uid.take(6)}"
+            // Run username checks
+            if (username.isNullOrBlank()) {
+                throw UserNeedsUsernameException(context.getString(R.string.user_needs_username))
+            }
 
-            // Ensure username uniqueness in Firestore
-            var finalUsername = baseUsername
-            var counter = 1
-            while (true) {
-                val existing = firestore.collection("users")
-                    .whereEqualTo("username", finalUsername)
-                    .get()
-                    .await()
-                if (existing.isEmpty) break
-                finalUsername = "$baseUsername$counter"
-                counter++
+            val invalidSymbol = username.firstOrNull { it in bannedSymbols }
+            if (invalidSymbol != null) {
+                val errorMessage = context.getString(
+                    R.string.error_invalid_username_symbol,
+                    invalidSymbol.toString()
+                )
+                throw FirebaseAuthInvalidCredentialsException("ERROR_INVALID_USERNAME", errorMessage)
+            }
+
+            val existing = firestore.collection("users")
+                .whereEqualTo("username", username)
+                .get()
+                .await()
+            if (!existing.isEmpty) {
+                throw IllegalArgumentException(context.getString(R.string.username_already_taken))
             }
 
             // Create Firestore user record
             val userModel = User(
                 uid = user.uid,
                 email = user.email ?: "",
-                username = finalUsername
+                username = username
             )
             userDocRef.set(userModel).await()
 
             // Set Auth display name if not already set
             if (user.displayName.isNullOrBlank()) {
                 val profileUpdates = UserProfileChangeRequest.Builder()
-                    .setDisplayName(finalUsername)
+                    .setDisplayName(username)
                     .build()
                 user.updateProfile(profileUpdates).await()
             }

@@ -63,5 +63,10 @@
     <string name="registration_user_null">El registro se completó pero el usuario es nulo</string>
     <string name="login_user_null">El inicio de sesión se completó pero el usuario es nulo</string>
     <string name="google_signin_user_null">El inicio de sesión con Google se completó pero el usuario es nulo</string>
+    <string name="choose_username">Elige un nombre de usuario</string>
+    <string name="continue_text">Continuar</string>
+    <string name="continue_with_google">Continuar con Google</string>
+    <string name="user_needs_username">El usuario necesita un nombre de usuario</string>
+    <string name="username_already_taken">El nombre de usuario ya está en uso.</string>
 </resources>
 
