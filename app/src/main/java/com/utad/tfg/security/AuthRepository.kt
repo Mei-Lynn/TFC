@@ -65,6 +65,14 @@ class AuthRepository @Inject constructor(
             throw FirebaseAuthInvalidCredentialsException("ERROR_INVALID_USERNAME", errorMessage)
         }
 
+        val existing = firestore.collection("users")
+            .whereEqualTo("username", username)
+            .get()
+            .await()
+        if (!existing.isEmpty) {
+            throw IllegalArgumentException(context.getString(R.string.username_already_taken))
+        }
+
         val result = firebaseAuth.createUserWithEmailAndPassword(email, password).await()
         val user = result.user ?: throw IllegalStateException(context.getString(R.string.registration_user_null))
 
@@ -153,13 +161,10 @@ class AuthRepository @Inject constructor(
             )
             userDocRef.set(userModel).await()
 
-            // Set Auth display name if not already set
-            if (user.displayName.isNullOrBlank()) {
-                val profileUpdates = UserProfileChangeRequest.Builder()
-                    .setDisplayName(username)
-                    .build()
-                user.updateProfile(profileUpdates).await()
-            }
+            val profileUpdates = UserProfileChangeRequest.Builder()
+                .setDisplayName(username)
+                .build()
+            user.updateProfile(profileUpdates).await()
         }
 
         return user
