@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Base64
 import android.util.Log
+import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.utad.tfg.local.daos.CharacterDao
@@ -655,11 +656,18 @@ class FirestoreRepository @Inject constructor(
 
                 distinctDocs.forEach { doc ->
                     val data = doc.data ?: return@forEach
+                    val rawPlayers = data["playersIds"]
+                    val playersList = when (rawPlayers) {
+                        is List<*> -> rawPlayers.filterIsInstance<String>()
+                        is Map<*, *> -> rawPlayers.keys.filterIsInstance<String>()
+                        else -> emptyList()
+                    }
+
                     val campaign = Campaign(
                         id = doc.id,
                         name = data["name"] as? String ?: "Unnamed Campaign",
                         ownerId = data["ownerId"] as? String ?: "",
-                        playersIds = data["playersIds"] as? List<String> ?: emptyList(),
+                        playersIds = playersList,
                         charactersIds = data["charactersIds"] as? List<String> ?: emptyList(),
                         monstersIds = data["monstersIds"] as? List<String> ?: emptyList(),
                         imgUri = data["imgUri"] as? String
@@ -715,16 +723,26 @@ class FirestoreRepository @Inject constructor(
         }
     }
 
-    suspend fun getCharactersByIds(ids: List<String>): List<Character> {
-        if (ids.isEmpty()) return emptyList()
+    suspend fun getCharactersAndPlayersByIds(
+        characterIds: List<String>,
+        playerIds: List<String> = emptyList()
+    ): Map<String, Character?> {
+        if (characterIds.isEmpty() && playerIds.isEmpty()) return emptyMap()
         return try {
-            val snapshot = firestore.collection("characters")
-                .whereIn(com.google.firebase.firestore.FieldPath.documentId(), ids)
-                .get()
-                .await()
+            val snapshotDocs = if (characterIds.isNotEmpty()) {
+                characterIds.chunked(30).flatMap { chunk ->
+                    firestore.collection("characters")
+                        .whereIn(FieldPath.documentId(), chunk)
+                        .get()
+                        .await()
+                        .documents
+                }
+            } else emptyList()
 
-            snapshot.documents.mapNotNull { doc ->
-                val data = doc.data ?: return@mapNotNull null
+            val ownerToCharMap = mutableMapOf<String, Character>()
+
+            snapshotDocs.forEach { doc ->
+                val data = doc.data ?: return@forEach
                 val charState = when (data["state"] as? String) {
                     "active" -> CharState.active
                     "dead" -> CharState.dead
@@ -732,7 +750,7 @@ class FirestoreRepository @Inject constructor(
                     else -> CharState.noCampaign
                 }
 
-                Character(
+                val character = Character(
                     remoteId = doc.id,
                     campaignId = data["campaignId"] as? String,
                     name = data["name"] as? String ?: "Unknown",
@@ -759,10 +777,38 @@ class FirestoreRepository @Inject constructor(
                     offHandIndex = data["offHandIndex"] as? String,
                     armorIndex = data["armorIndex"] as? String
                 )
+
+                val ownerUid = data["uid"] as? String ?: ""
+                if (ownerUid.isNotEmpty()) {
+                    ownerToCharMap[ownerUid] = character
+                }
             }
+
+            val allPlayerUids = (playerIds + ownerToCharMap.keys).distinct().filter { it.isNotEmpty() }
+            val resultMap = mutableMapOf<String, Character?>()
+
+            if (allPlayerUids.isNotEmpty()) {
+                val userDocs = allPlayerUids.chunked(30).flatMap { chunk ->
+                    firestore.collection("users")
+                        .whereIn(FieldPath.documentId(), chunk)
+                        .get()
+                        .await()
+                        .documents
+                }
+
+                for (userDoc in userDocs) {
+                    val uid = userDoc.id
+                    val username = userDoc.getString("username")
+                        ?: userDoc.getString("displayName")
+                        ?: "Unknown"
+                    resultMap[username] = ownerToCharMap[uid]
+                }
+            }
+
+            resultMap
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching characters by IDs", e)
-            emptyList()
+            Log.e(TAG, "Error fetching characters and players by IDs", e)
+            emptyMap()
         }
     }
 }

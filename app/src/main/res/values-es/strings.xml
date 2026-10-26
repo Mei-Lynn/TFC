@@ -68,5 +68,24 @@
     <string name="continue_with_google">Continuar con Google</string>
     <string name="user_needs_username">El usuario necesita un nombre de usuario</string>
     <string name="username_already_taken">El nombre de usuario ya está en uso.</string>
+    <string name="player_label">Jugador: %1$s</string>
+    <string name="add_campaign">Añadir Campaña</string>
+    <string name="dm">DM</string>
+    <string name="player">Jugador</string>
+    <string name="players">Jugadores</string>
+    <string name="create">Crear</string>
+    <string name="join">Unirse</string>
+    <string name="campaign_name">Nombre de la Campaña</string>
+    <string name="image_url_optional">URL de la Imagen (opcional)</string>
+    <string name="character">Personaje</string>
+    <string name="select_character">Seleccionar Personaje</string>
+    <string name="no_eligible_characters">Sin personajes elegibles</string>
+    <string name="campaign_id">ID de la Campaña</string>
+    <string name="id_copied">ID copiado al portapapeles</string>
+    <string name="copy_id">Copiar ID</string>
+    <string name="monsters">Monstruos</string>
+    <string name="no_players_found">No se encontraron jugadores en esta campaña.</string>
+    <string name="no_monsters_added">No se han añadido monstruos aún.</string>
+    <string name="no_character_yet">Sin personaje aún</string>
 </resources>
 

@@ -5,7 +5,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -30,10 +30,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -77,7 +74,6 @@ import com.utad.tfg.R
 import com.utad.tfg.local.entities.Campaign
 import com.utad.tfg.local.entities.Character
 import com.utad.tfg.model.CharState
-import kotlinx.coroutines.flow.first
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -97,7 +93,7 @@ fun CampaignsScreen(onCharacterClick: () -> Unit) {
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(onClick = { showActionDialog = true }, shape = CircleShape) {
-                Icon(Icons.Default.Add, contentDescription = "Add Campaign")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_campaign))
             }
         }
     ) { paddingValues ->
@@ -106,12 +102,12 @@ fun CampaignsScreen(onCharacterClick: () -> Unit) {
                 Tab(
                     selected = selectedTabIndex == 0,
                     onClick = { selectedTabIndex = 0 },
-                    text = { Text("DM") }
+                    text = { Text(stringResource(R.string.dm)) }
                 )
                 Tab(
                     selected = selectedTabIndex == 1,
                     onClick = { selectedTabIndex = 1 },
-                    text = { Text("Player") }
+                    text = { Text(stringResource(R.string.player)) }
                 )
             }
 
@@ -136,7 +132,7 @@ fun CampaignsScreen(onCharacterClick: () -> Unit) {
             CampaignActionDialog(
                 onDismiss = { showActionDialog = false },
                 onCreate = { name, uri -> vm.createCampaign(name, uri) },
-                onJoin = { id, charId -> vm.joinCampaign(id, charId) }
+                onJoin = { id -> vm.joinCampaign(id) }
             )
         }
         
@@ -230,7 +226,7 @@ fun CampaignCard(campaign: Campaign, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Players",
+                    text = stringResource(R.string.players),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -244,19 +240,12 @@ fun CampaignCard(campaign: Campaign, onClick: () -> Unit) {
 fun CampaignActionDialog(
     onDismiss: () -> Unit,
     onCreate: (String, String?) -> Unit,
-    onJoin: (String, Long) -> Unit
+    onJoin: (String) -> Unit
 ) {
     var mode by remember { mutableStateOf("Create") }
     var campaignName by remember { mutableStateOf("") }
     var campaignImgUri by remember { mutableStateOf("") }
     var joinCampaignId by remember { mutableStateOf("") }
-    var selectedCharacterId by remember { mutableStateOf<Long?>(null) }
-    var expanded by remember { mutableStateOf(false) }
-    
-    val vm = hiltViewModel<MainViewModel>(LocalContext.current as ComponentActivity)
-    val localCharacters by vm.localCharacters.collectAsStateWithLifecycle()
-    val eligibleCharacters = localCharacters.filter { it.state == CharState.noCampaign }
-    val selectedCharacterName = eligibleCharacters.find { it.id == selectedCharacterId }?.name ?: "Select Character"
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -269,8 +258,16 @@ fun CampaignActionDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 TabRow(selectedTabIndex = if (mode == "Create") 0 else 1) {
-                    Tab(selected = mode == "Create", onClick = { mode = "Create" }, text = { Text("Create") })
-                    Tab(selected = mode == "Join", onClick = { mode = "Join" }, text = { Text("Join") })
+                    Tab(
+                        selected = mode == "Create",
+                        onClick = { mode = "Create" },
+                        text = { Text(stringResource(R.string.create)) }
+                    )
+                    Tab(
+                        selected = mode == "Join",
+                        onClick = { mode = "Join" },
+                        text = { Text(stringResource(R.string.join)) }
+                    )
                 }
                 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -279,55 +276,22 @@ fun CampaignActionDialog(
                     OutlinedTextField(
                         value = campaignName,
                         onValueChange = { campaignName = it },
-                        label = { Text("Campaign Name") },
+                        label = { Text(stringResource(R.string.campaign_name)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = campaignImgUri,
                         onValueChange = { campaignImgUri = it },
-                        label = { Text("Image URL (optional)") },
+                        label = { Text(stringResource(R.string.image_url_optional)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                 } else {
-                    ExposedDropdownMenuBox(
-                        expanded = expanded,
-                        onExpandedChange = { expanded = it }
-                    ) {
-                        OutlinedTextField(
-                            value = selectedCharacterName,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Character") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                            modifier = Modifier.fillMaxWidth().menuAnchor()
-                        )
-                        ExposedDropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false }
-                        ) {
-                            eligibleCharacters.forEach { char ->
-                                DropdownMenuItem(
-                                    text = { Text(char.name) },
-                                    onClick = {
-                                        selectedCharacterId = char.id
-                                        expanded = false
-                                    }
-                                )
-                            }
-                            if (eligibleCharacters.isEmpty()) {
-                                DropdownMenuItem(
-                                    text = { Text("No eligible characters") },
-                                    onClick = { expanded = false }
-                                )
-                            }
-                        }
-                    }
                     OutlinedTextField(
                         value = joinCampaignId,
                         onValueChange = { joinCampaignId = it },
-                        label = { Text("Campaign ID") },
+                        label = { Text(stringResource(R.string.campaign_id)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -346,15 +310,15 @@ fun CampaignActionDialog(
                     Button(
                         onClick = {
                             if (mode == "Create" && campaignName.isNotBlank()) {
-                                onCreate(campaignName, if (campaignImgUri.isNotBlank()) campaignImgUri else null)
+                                onCreate(campaignName, campaignImgUri.ifBlank { null })
                                 onDismiss()
-                            } else if (mode == "Join" && joinCampaignId.isNotBlank() && selectedCharacterId != null) {
-                                onJoin(joinCampaignId, selectedCharacterId!!)
+                            } else if (mode == "Join" && joinCampaignId.isNotBlank()) {
+                                onJoin(joinCampaignId)
                                 onDismiss()
                             }
                         }
                     ) {
-                        Text(if (mode == "Create") "Create" else "Join")
+                        Text(if (mode == "Create") stringResource(R.string.create) else stringResource(R.string.join))
                     }
                 }
             }
@@ -370,10 +334,13 @@ fun CampaignDetailsDialog(campaign: Campaign, onDismiss: () -> Unit, onCharacter
     
     LaunchedEffect(campaign) {
         vm.loadCampaignCharacters(campaign)
-
     }
-    
-    val characters by vm.campaignCharacters.collectAsStateWithLifecycle()
+
+    val players by vm.campaignPlayers.collectAsStateWithLifecycle()
+    val localCharacters by vm.localCharacters.collectAsStateWithLifecycle()
+    val eligibleCharacters = localCharacters.filter { it.state == CharState.noCampaign }
+    var showAddCharacterDialog by remember { mutableStateOf(false) }
+
     val syncState by vm.campaignSyncState.collectAsStateWithLifecycle()
     val monsters by vm.monsters.collectAsStateWithLifecycle()
     val currentUser by auth.currentUser.collectAsStateWithLifecycle()
@@ -400,10 +367,52 @@ fun CampaignDetailsDialog(campaign: Campaign, onDismiss: () -> Unit, onCharacter
         )
     }
 
+    if (showAddCharacterDialog) {
+        Dialog(onDismissRequest = { showAddCharacterDialog = false }) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(stringResource(R.string.add_character), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    if (eligibleCharacters.isEmpty()) {
+                        Text(stringResource(R.string.no_eligible_characters), style = MaterialTheme.typography.bodyMedium)
+                    } else {
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.heightIn(max = 200.dp)
+                        ) {
+                            items(eligibleCharacters) { char ->
+                                androidx.compose.material3.OutlinedButton(
+                                    onClick = {
+                                        vm.addCharacterToCampaign(campaign.id, char.id)
+                                        showAddCharacterDialog = false
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(char.name)
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(onClick = { showAddCharacterDialog = false }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+            }
+        }
+    }
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth().fillMaxSize(0.8f) // take up 80% of screen height
+            modifier = Modifier.fillMaxWidth().fillMaxSize(0.8f)
         ) {
             Column(modifier = Modifier.padding(16.dp).fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
                 // Campaign Image
@@ -440,16 +449,17 @@ fun CampaignDetailsDialog(campaign: Campaign, onDismiss: () -> Unit, onCharacter
                 Text(text = campaign.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 
                 // Copy ID
+                val idCopiedMsg = stringResource(R.string.id_copied)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("ID: ${campaign.id}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     androidx.compose.material3.IconButton(
                         onClick = { 
                             clipboard.setText(AnnotatedString(campaign.id))
-                            Toast.makeText(context, "ID copied to clipboard", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, idCopiedMsg, Toast.LENGTH_SHORT).show()
                         },
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = "Copy ID", modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.ContentCopy, contentDescription = stringResource(R.string.copy_id), modifier = Modifier.size(16.dp))
                     }
                 }
                 
@@ -457,8 +467,8 @@ fun CampaignDetailsDialog(campaign: Campaign, onDismiss: () -> Unit, onCharacter
                 
                 if (isOwner) {
                     TabRow(selectedTabIndex = selectedTab) {
-                        Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Characters") })
-                        Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Monsters") })
+                        Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text(stringResource(R.string.characters)) })
+                        Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text(stringResource(R.string.monsters)) })
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                 }
@@ -468,37 +478,46 @@ fun CampaignDetailsDialog(campaign: Campaign, onDismiss: () -> Unit, onCharacter
                         CircularProgressIndicator()
                     }
                 } else if (!isOwner || selectedTab == 0) {
-                    if (characters.isEmpty()) {
+                    if (players.isEmpty()) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("No characters found in this campaign.", style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.no_players_found), style = MaterialTheme.typography.bodyMedium)
                         }
                     } else {
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            /** EDITAR AQUÍ PARA AÑADIR JUGADORES
-                             * Lista de requerimientos:
-                             * - Añadir tabla de usuarios en Firestore ~ Actualizar login/creación de usuarios ✅
-                             * Objetivo:
-                             * - Alterar la lógica de campaña: Se unen usuarios y ellos eligen (de forma bloqueante) un personaje
-                             * - El DM puede expulsar jugadores o borrar personajes de la campaña
-                             * - Los jugadores pueden reemplazar su personaje una vez está muerto
-                             * - Añadir líneas a la tabla de la campaña: AvailableLevelOrXP y hacer logica que bloquee a los jugadores de subir de nivel
-                             * -
-                              */
+                            currentUser?.displayName?.let { currentUsername ->
+                                if (players.containsKey(currentUsername)) {
+                                    item {
+                                        PlayerCard(
+                                            name = currentUsername,
+                                            isUser = true,
+                                            chosenCharacter = players[currentUsername],
+                                            onCharacterClick = { char ->
+                                                vm.setSelectedCharacter(char)
+                                                onCharacterClick()
+                                                onDismiss()
+                                            },
+                                            onAddCharacter = {
+                                                showAddCharacterDialog = true
+                                            }
+                                        )
+                                    }
+                                }
+                            }
 
-                            items(characters) { character ->
-                                CharacterCard(
-                                    character = character,
-                                    isSelected = false,
-                                    isSelectMode = false,
-                                    onToggleSelect = {},
-                                    onClick = {
-                                        vm.setSelectedCharacter(it)
+                            items(players.keys.toList().filter { it != currentUser?.displayName }) { playerName ->
+                                PlayerCard(
+                                    name = playerName,
+                                    isUser = false,
+                                    chosenCharacter = players[playerName],
+                                    onCharacterClick = { char ->
+                                        vm.setSelectedCharacter(char)
                                         onCharacterClick()
                                         onDismiss()
-                                    }
+                                    },
+                                    onAddCharacter = {}
                                 )
                             }
                         }
@@ -507,7 +526,7 @@ fun CampaignDetailsDialog(campaign: Campaign, onDismiss: () -> Unit, onCharacter
                     val campaignMonsters = monsters.filter { campaign.monstersIds.contains(it.index) }
                     if (campaignMonsters.isEmpty()) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("No monsters added yet.", style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.no_monsters_added), style = MaterialTheme.typography.bodyMedium)
                         }
                     } else {
                         LazyColumn(
@@ -527,9 +546,80 @@ fun CampaignDetailsDialog(campaign: Campaign, onDismiss: () -> Unit, onCharacter
                 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDismiss) {
-                        Text("Close")
+                        Text(stringResource(R.string.close))
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun PlayerCard(
+    name: String,
+    isUser: Boolean,
+    chosenCharacter: Character?,
+    onCharacterClick: (Character) -> Unit,
+    onAddCharacter: () -> Unit = {}
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = stringResource(R.string.player_label, name),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            if (chosenCharacter != null) {
+                CharacterCard(
+                    character = chosenCharacter,
+                    isSelected = false,
+                    isSelectMode = false,
+                    onToggleSelect = {},
+                    onClick = {
+                        onCharacterClick(chosenCharacter)
+                    }
+                )
+            } else if (isUser) {
+                Button(
+                    onClick = onAddCharacter,
+                    modifier = Modifier.fillMaxWidth().padding(start = 24.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.add_character))
+                }
+            } else {
+                Text(
+                    text = stringResource(R.string.no_character_yet),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 24.dp)
+                )
             }
         }
     }

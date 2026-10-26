@@ -1,9 +1,11 @@
 package com.utad.tfg.presentation
 
 import android.app.Application
+import android.net.Uri
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.firestore.FirebaseFirestore
 import com.utad.tfg.local.daos.CharacterDao
 import com.utad.tfg.local.daos.EnemyDao
 import com.utad.tfg.local.daos.CampaignDao
@@ -39,6 +41,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.io.File
 import javax.inject.Inject
 
 
@@ -91,8 +94,8 @@ class MainViewModel @Inject constructor(
     private val _charSyncState = MutableStateFlow<CharSyncState>(CharSyncState.Syncing)
     val charSyncState = _charSyncState.asStateFlow()
 
-    private val _campaignCharacters = MutableStateFlow<List<Character>>(emptyList())
-    val campaignCharacters = _campaignCharacters.asStateFlow()
+    private val _campaignPlayers = MutableStateFlow<Map<String, Character?>>(emptyMap())
+    val campaignPlayers = _campaignPlayers.asStateFlow()
 
     private val _campaignSyncState = MutableStateFlow<CharSyncState>(CharSyncState.Syncing)
     val campaignSyncState = _campaignSyncState.asStateFlow()
@@ -228,7 +231,7 @@ class MainViewModel @Inject constructor(
             characters.forEach { char ->
                 char.imgUri?.let { uri ->
                     try {
-                        val file = java.io.File(android.net.Uri.parse(uri).path ?: return@let)
+                        val file = File(Uri.parse(uri).path ?: return@let)
                         if (file.exists()) file.delete()
                     } catch (_: Exception) { }
                 }
@@ -247,7 +250,7 @@ class MainViewModel @Inject constructor(
             character.imgUri?.let { oldUri ->
                 if (oldUri != imgUri) {
                     try {
-                        val file = java.io.File(android.net.Uri.parse(oldUri).path ?: return@let)
+                        val file = File(Uri.parse(oldUri).path ?: return@let)
                         if (file.exists()) file.delete()
                     } catch (_: Exception) { }
                 }
@@ -350,24 +353,45 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun joinCampaign(campaignId: String, characterId: Long) {
+    fun joinCampaign(campaignId: String) {
+        viewModelScope.launch {
+            val user = authRepository.currentUser.first() ?: return@launch
+
+            try {
+                val db = FirebaseFirestore.getInstance()
+                val doc = db.collection("campaigns").document(campaignId).get().await()
+                if (doc.exists()) {
+                    val pIds = doc.get("playersIds") as? Map<String, String> ?: emptyMap()
+
+                    val newPids = if (!pIds.keys.contains(user.uid)) pIds + Pair(user.uid, user.displayName) else pIds
+
+                    db.collection("campaigns").document(campaignId).update(
+                        mapOf(
+                            "playersIds" to newPids,
+                        )
+                    ).await()
+
+                    // Re-download campaigns
+                    firestoreRepository.downloadCampaignsByUID()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+    fun addCharacterToCampaign(campaignId: String, characterId: Long) {
         viewModelScope.launch {
             val user = authRepository.currentUser.first() ?: return@launch
             val character = characterDao.getCharacterById(characterId) ?: return@launch
-            
-            // Note: Since campaigns are fetched to the local DB, we can try to get it.
-            // If the user hasn't downloaded the campaign, they might not have it locally.
-            // Ideally we fetch it from Firestore first, or just assume they add it.
-            // For now, let's just update the character remote, and we need to update the campaign.
-            // We should ideally have a method to fetch campaign by ID from firestore, update it, and save.
+
             try {
-                val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                val db = FirebaseFirestore.getInstance()
                 val doc = db.collection("campaigns").document(campaignId).get().await()
                 if (doc.exists()) {
-                    val pIds = doc.get("playersIds") as? List<String> ?: emptyList()
+                    val pIds = doc.get("playersIds") as? Map<String, String> ?: emptyMap()
                     val cIds = doc.get("charactersIds") as? List<String> ?: emptyList()
                     
-                    val newPids = if (!pIds.contains(user.uid)) pIds + user.uid else pIds
+                    val newPids = if (!pIds.contains(user.uid)) pIds + Pair(user.uid, user.displayName) else pIds
                     val newCids = if (character.remoteId != null && !cIds.contains(character.remoteId)) cIds + character.remoteId else cIds
 
                     db.collection("campaigns").document(campaignId).update(
@@ -423,7 +447,11 @@ class MainViewModel @Inject constructor(
     fun loadCampaignCharacters(campaign: Campaign) {
         viewModelScope.launch {
             _campaignSyncState.value = CharSyncState.Syncing
-            _campaignCharacters.value = firestoreRepository.getCharactersByIds(campaign.charactersIds)
+            val playersMap = firestoreRepository.getCharactersAndPlayersByIds(
+                characterIds = campaign.charactersIds,
+                playerIds = campaign.playersIds
+            )
+            _campaignPlayers.value = playersMap
             _campaignSyncState.value = CharSyncState.Done
         }
     }
