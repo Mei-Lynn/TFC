@@ -65,11 +65,8 @@ class AuthRepository @Inject constructor(
             throw FirebaseAuthInvalidCredentialsException("ERROR_INVALID_USERNAME", errorMessage)
         }
 
-        val existing = firestore.collection("users")
-            .whereEqualTo("username", username)
-            .get()
-            .await()
-        if (!existing.isEmpty) {
+        val usernameDoc = firestore.collection("usernames").document(username).get().await()
+        if (usernameDoc.exists()) {
             throw IllegalArgumentException(context.getString(R.string.username_already_taken))
         }
 
@@ -91,6 +88,12 @@ class AuthRepository @Inject constructor(
             .set(userModel)
             .await()
 
+        val usernameMap = mapOf("uid" to user.uid, "email" to email)
+        firestore.collection("usernames")
+            .document(username)
+            .set(usernameMap)
+            .await()
+
         return user
     }
 
@@ -101,16 +104,13 @@ class AuthRepository @Inject constructor(
         var credential = emailOrUsername
 
         if (!emailOrUsername.contains("@")){
-            val query = firestore.collection("users")
-                .whereEqualTo("username", emailOrUsername)
-                .get()
-                .await()
+            val doc = firestore.collection("usernames").document(emailOrUsername).get().await()
 
-            if (query.isEmpty) {
+            if (!doc.exists()) {
                 throw IllegalArgumentException(context.getString(R.string.username_not_found))
             }
 
-            credential = query.documents.first().getString("email")
+            credential = doc.getString("email")
                 ?: throw IllegalStateException(context.getString(R.string.user_record_missing_email))
         }
 
@@ -145,11 +145,8 @@ class AuthRepository @Inject constructor(
                 throw FirebaseAuthInvalidCredentialsException("ERROR_INVALID_USERNAME", errorMessage)
             }
 
-            val existing = firestore.collection("users")
-                .whereEqualTo("username", username)
-                .get()
-                .await()
-            if (!existing.isEmpty) {
+            val usernameDoc = firestore.collection("usernames").document(username).get().await()
+            if (usernameDoc.exists()) {
                 throw IllegalArgumentException(context.getString(R.string.username_already_taken))
             }
 
@@ -160,6 +157,9 @@ class AuthRepository @Inject constructor(
                 username = username
             )
             userDocRef.set(userModel).await()
+
+            val usernameMap = mapOf("uid" to user.uid, "email" to (user.email ?: ""))
+            firestore.collection("usernames").document(username).set(usernameMap).await()
 
             val profileUpdates = UserProfileChangeRequest.Builder()
                 .setDisplayName(username)
