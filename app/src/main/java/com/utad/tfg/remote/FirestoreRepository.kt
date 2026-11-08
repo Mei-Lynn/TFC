@@ -639,15 +639,17 @@ class FirestoreRepository @Inject constructor(
         val user = authRepository.currentUser.first()
         if (user != null) {
             try {
+                val docRef = firestore.collection("campaigns").document("fUbWGNXTy8F5KHk78z7A")
+
                 // Fetch campaigns where user is owner
                 val ownerSnapshot = firestore.collection("campaigns")
                     .whereEqualTo("ownerId", user.uid)
                     .get()
                     .await()
-                
-                // Fetch campaigns where user is in playersIds (requires array-contains)
+
+                // Fetch campaigns where user is in playersIds map
                 val playerSnapshot = firestore.collection("campaigns")
-                    .whereArrayContains("playersIds", user.uid)
+                    .whereGreaterThan("playersIds.${user.uid}", "")
                     .get()
                     .await()
 
@@ -675,6 +677,7 @@ class FirestoreRepository @Inject constructor(
                     campaignDao.insertCampaign(campaign)
                 }
 
+                Log.d(TAG, "Downloaded ${ownerSnapshot.size() + playerSnapshot.size()} campaigns for user ${user.uid}")
             } catch (e: Exception) {
                 Log.e(TAG, "Unexpected error in downloadCampaignsByUID", e)
             }

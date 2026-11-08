@@ -362,7 +362,6 @@ class MainViewModel @Inject constructor(
                 val doc = db.collection("campaigns").document(campaignId).get().await()
                 if (doc.exists()) {
                     val pIds = doc.get("playersIds") as? Map<String, String> ?: emptyMap()
-
                     val newPids = if (!pIds.keys.contains(user.uid)) pIds + Pair(user.uid, user.displayName) else pIds
 
                     db.collection("campaigns").document(campaignId).update(
